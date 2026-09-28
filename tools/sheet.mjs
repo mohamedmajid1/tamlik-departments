@@ -9,7 +9,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const [o = 'portrait', prefix = 'frame', ...times] = process.argv.slice(2);
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream', '.m4a': 'audio/mp4' };
 const srv = createServer(async (q, s) => {
   const p = resolve(root, '.' + decodeURIComponent(new URL(q.url, 'http://x').pathname).replace(/\/$/, '/index.html'));
   if (!p.startsWith(root)) { s.writeHead(403); return s.end(); }

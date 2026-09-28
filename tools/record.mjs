@@ -17,7 +17,7 @@ const OUT = A.mp4 || `renders/departments_${O}${A.only ? '_' + A.only : ''}.mp4`
 const root = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 mkdirSync(dirname(resolve(root, OUT)), { recursive: true });
 
-const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.m4a': 'audio/mp4' };
+const types = { '.html': 'text/html', '.js': 'text/javascript', '.mjs': 'text/javascript', '.css': 'text/css', '.svg': 'image/svg+xml', '.png': 'image/png', '.jpg': 'image/jpeg', '.json': 'application/json', '.m4a': 'audio/mp4', '.gltf': 'model/gltf+json', '.bin': 'application/octet-stream' };
 const srv = createServer(async (q, s) => {
   const p = resolve(root, '.' + decodeURIComponent(new URL(q.url, 'http://x').pathname).replace(/\/$/, '/index.html'));
   if (!p.startsWith(root)) { s.writeHead(403); return s.end(); }

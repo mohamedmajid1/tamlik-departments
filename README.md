@@ -6,9 +6,9 @@ forever with no interaction and has its own soundtrack.
 | Time | Scene |
 |---|---|
 | 0–4 s | The Tamlik logo builds: the roofs slide together, the wordmark writes on, the three department names |
-| 4–18 s | **Tamlik Maintenance**, *We keep it perfect*: a villa blueprint draws itself, its hidden pipes and wiring appear, four faults (a leak, a crack, a flickering light, a stuttering AC) turn amber, then green markers land and fix each one; a 24/7 ring closes |
+| 4–18 s | **Tamlik Maintenance**, *We keep it perfect*: a villa blueprint draws itself on a drawing sheet (solar panels, water heater, dish, kitchen, bathroom, split AC, breaker panel, sockets, foundations, north arrow, title block), its hidden pipes and wiring appear, four faults (a leak, a crack, a flickering light, a stuttering AC) turn amber, then green markers land, each fault bursts green and the tool turns into a check mark; a 24/7 ring closes |
 | 18–32 s | **Tamlik Media**, *We make you seen*: a phone rises with a Tamlik feed (stills from the tower film), likes float up, Instagram, TikTok, LinkedIn and Facebook join, a growth line climbs, and a circuit from a Tamlik chip lights a laptop, a display and a website |
-| 32–46 s | **Tamlik Fit-out**, *We shape your space*: an empty floor plan draws, the concrete shell lifts away to walnut and marble, furniture lands piece by piece, the lamps come on, and real material samples fan out |
+| 32–46 s | **Tamlik Fit-out**, *We shape your space*: a 3D walk-through. The camera stands in an empty flat: raw walls are painted from the ceiling down, the concrete floor flips over tile by tile to oak, a jute rug unrolls, real furniture drops into place, the pendants lower and switch on, and the sunset fills the window. Framed prints of the Tamlik tower go up on the wall |
 | 46–53 s | The logo returns with the three departments and the contact caption, then fades to black and loops |
 
 A green line wipes across the screen between scenes. The layout adapts to portrait (1080×1920) or landscape (1920×1080).
@@ -38,14 +38,16 @@ URL options: `?o=portrait|landscape` forces a layout, `?only=maintenance|media|f
 ## Code
 
 - `src/main.js`: builds the layers and the master timeline (intro, wipes, outro, loop, sound, recording hooks).
-- `src/scenes/*.js`: each department's artwork (SVG in a 1000×1000 box) and its `animate(tl, el, T)`.
+- `src/scenes/*.js`: each department's artwork and its `animate(tl, el, T)`. Maintenance and Media are SVG (a 1000×1000 box);
+  Fit-out is a Three.js room (`init`, `render`) whose objects Anime.js moves directly.
+- `node tools/fetch-assets.mjs`: downloads the furniture, textures (Poly Haven) and the music source.
 - `src/brand.js`: logo, colours, icons, caption. `src/style.css`: layout for both orientations.
 
 ## Credits
 
 - [Anime.js](https://animejs.com) 4.5.0 (MIT), `vendor/`.
 - [Tabler Icons](https://tabler.io/icons) (MIT), `assets/icons/`.
-- Textures: [Poly Haven](https://polyhaven.com) (CC0), `assets/tex/`.
-- Music: "Cosmic Waves" by [HoliznaCC0](https://archive.org/details/holizna-cc-0-cosmic-waves) (CC0). Sound effects are
+- Furniture models and textures: [Poly Haven](https://polyhaven.com) (CC0), `assets/models/`, `assets/tex3d/`, `assets/tex/`.
+- Music: "Once More With You" by [Loyalty Freak Music](https://archive.org/details/LoyaltyFreakMusic-minimalAmbientBounce) (CC0). Sound effects are
   synthesised in `tools/mix-audio.mjs`.
 - Film stills: rendered from the Tamlik tower film, `assets/posts/`.

@@ -1,6 +1,6 @@
 // Build the soundtrack: one seamless loop exactly as long as the film (53 s), every sound placed on the film's own
 // timeline (seconds from the start, see src/main.js and src/scenes/*).   node tools/mix-audio.mjs -> assets/audio/loop.m4a
-// Music: "Cosmic Waves" by HoliznaCC0 (CC0), the same bed as the tower film. Every effect is synthesised here and
+// Music: "Once More With You" by Loyalty Freak Music (CC0, album Minimal Ambient Bounce). Every effect is synthesised here and
 // tuned to the music (A minor). Needs ffmpeg.
 import { execFileSync, spawnSync } from 'node:child_process';
 import { dirname, join } from 'node:path';
@@ -65,7 +65,7 @@ boom(0.3, 0.45); whoosh(0.2, 1.4, 0.18, 0); chime(1.9, 0.07);
 hiss(4.5, 1.5, 0.05, 0);
 shot(7.6, 'sin(2*PI*233*t)*sin(2*PI*247*t)*exp(-3*t)', 1.2, 0.12);          // a low, uneasy warning
 for (let lp = 0; lp < 4; lp++) for (let d = 0; d < 3; d++) plink(7.8 + d * 0.21 + lp * 0.64 + 0.3, 2093, 0.07, -0.4);   // drips
-[10.1, 11.15, 12.2, 13.25].forEach((t, i) => { click(t + 0.1, 0.22); bell(t + 0.55, [659.26, 783.99, 880, 1046.5][i], 0.09); });
+[10.1, 11.15, 12.2, 13.25].forEach((t, i) => { click(t + 0.1, 0.22); bell(t + 0.55, [659.26, 783.99, 880, 1046.5][i], 0.09); blip(t + 0.95, 1760, 0.05); });   // fixed: a chime, then the tick
 chime(14.5, 0.06);
 
 // Media (T = 18): the phone rises, a like, hearts, the channels, growth, the circuit
@@ -78,13 +78,16 @@ blip(25.35, 880, 0.1); [25.7, 25.81, 25.92].forEach((t) => blip(t, 1318.5, 0.05)
 [26.5, 26.65, 26.8].forEach((t, i) => pop(t, 0.18, [-0.6, 0, 0.6][i]));
 for (let i = 0; i < 3; i++) for (let lp = 0; lp < 4; lp++) blip(27 + i * 0.25 + lp * 0.9, 1760, 0.035, [-0.6, 0, 0.6][i]);
 
-// Fit-out (T = 32): the shell draws, the concrete lifts, furniture lands, the lamp, the samples
-hiss(32.5, 2.2, 0.05, 1);
-layer(`anoisesrc=c=brown:a=0.6:seed=77:d=2.6:r=48000,lowpass=f=900,aformat=channel_layouts=stereo,volume='0.35*sin(PI*t/2.6)':eval=frame,${place(34.5)}`);
-for (let i = 0; i < 20; i++) thud(36.9 + i * 0.17 + 0.25, 0.24, (i % 5 - 2) * 0.25);
-click(40.9, 0.3);
-pad([220, 329.63, 440], 40.9, 5, [[0, 0], [1.2, 0.03], [3.5, 0.025], [5, 0]]);
-whoosh(41.8, 1.0, 0.12, 9);
+// Fit-out (T = 32): paint runs down the walls, the floor flips to oak, the rug, the furniture drops in,
+// the pendants lower and switch on, the finishing touches
+layer(`anoisesrc=c=pink:a=0.5:seed=61:d=2.6:r=48000,highpass=f=700,lowpass=f=4200,aformat=channel_layouts=stereo,volume='0.07*sin(PI*t/2.6)*(0.7+0.3*sin(2*PI*3*t))':eval=frame,${place(32.7)}`);
+for (let i = 0; i < 16; i++) shot(34.75 + i * 0.17, 'sin(2*PI*(420-300*t)*t)*exp(-38*t)+ (random(0)*2-1)*exp(-90*t)*0.3', 0.2, 0.12, (i % 5 - 2) * 0.3);   // tiles tock over
+whoosh(36.7, 0.9, 0.1, 8);
+for (let i = 0; i < 9; i++) thud(37.2 + i * 0.23 + 0.32, 0.3, (i % 5 - 2) * 0.25);
+whoosh(40.6, 1.0, 0.08, 10);
+click(41.7, 0.3); click(41.95, 0.15);
+pad([220, 329.63, 440], 41.7, 5, [[0, 0], [1.2, 0.03], [3.3, 0.025], [5, 0]]);
+for (let i = 0; i < 7; i++) pop(42.3 + i * 0.17, 0.14, (i % 3 - 1) * 0.5);
 
 // outro: the logo, the three names, the caption
 chime(46.1, 0.08); [46.7, 46.86, 47.02].forEach((t, i) => blip(t, [880, 1046.5, 1318.5][i], 0.05));

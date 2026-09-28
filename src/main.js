@@ -43,8 +43,9 @@ for (const s of SCENES) {
   const el = document.createElement('section');
   el.className = 'scene layer'; el.id = s.id;
   el.style.setProperty('--accent', s.accent); el.style.setProperty('--glow', s.glow);
+  if (s.full) el.classList.add('full');
   el.innerHTML = `<div class="glow"></div><div class="grid"></div>
-    <svg class="art" viewBox="0 0 1000 1000">${s.art()}</svg>
+    ${s.full ? s.html() : `<svg class="art" viewBox="0 0 1000 1000">${s.art()}</svg>`}
     <div class="lockup">${logoSVG()}<div class="rule"></div><div class="dept">${chars(s.name)}</div></div>
     <div class="tagline">${words(s.tagline)}</div>
     <div class="footer">tamlikoman.com</div>`;
@@ -58,11 +59,13 @@ stage.insertAdjacentHTML('beforeend', `
     <div class="trio">${ALL.map((s) => `<div class="dep" style="--accent:${s.accent}"><span class="dot"></span>${s.name}</div>`).join('')}</div>
     ${captionHTML()}
   </section>
+  <div id="vignette"></div>
   <div id="sweep"></div>
   <div id="black"></div>`);
 const $ = (sel, root = stage) => [...root.querySelectorAll(sel)];
 
 await document.fonts.ready;
+for (const s of SCENES) if (s.init) await s.init(s.el, { portrait, record: RECORD });
 
 // ---- the master timeline ----------------------------------------------------------------------------
 const INTRO = 4000, SCENE = 14000, OUTRO = 7000;
@@ -133,9 +136,14 @@ const sound = (() => {
   return { start };
 })();
 
+// 3D scenes draw themselves only while on screen (live: every frame; recording: after every seek)
+const live3d = SCENES.map((s, i) => ({ s, from: INTRO + i * SCENE - 1200, to: INTRO + (i + 1) * SCENE + 600 })).filter((x) => x.s.render);
+function drawScenes(ms) { for (const x of live3d) if (ms >= x.from && ms <= x.to) x.s.render(); }
+if (!RECORD && live3d.length) (function loop() { drawScenes(tl.iterationCurrentTime ?? 0); requestAnimationFrame(loop); })();
+
 // ---- play ---------------------------------------------------------------------------------------------
 window.__duration = END;
-window.__seek = (ms) => { tl.seek(ms); };
+window.__seek = (ms) => { tl.seek(ms); drawScenes(ms); };
 if (Q.has('t')) tl.seek(+Q.get('t') * 1000);
 else if (!RECORD) { tl.play(); sound?.start().catch(() => {}); }
 window.__ready = true;

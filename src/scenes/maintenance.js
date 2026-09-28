@@ -61,9 +61,29 @@ export const maintenance = {
     ${line('M 595 358 L 595 296 L 670 296 L 670 358', 'wall', 1.8, 0.75)}
     <circle class="draw" cx="632" cy="322" r="18" fill="none" stroke="${P}" stroke-opacity=".75" stroke-width="1.8"/>
     <g transform="translate(632 322)"><g class="spin fan"><circle r="19" fill="none"/>${[0, 120, 240].map((a) => `<path d="M 0 0 C 6 -6 12 -8 14 -2" transform="rotate(${a})" fill="none" stroke="${P}" stroke-width="1.8" stroke-opacity=".8"/>`).join('')}</g></g>
-    <!-- hidden services, dashed: water from the tank, power to the lights -->
+    <!-- the rest of the house: roof kit, rooms and fixtures, foundations -->
+    ${line('M 392 358 L 410 330 L 468 330 L 450 358 Z M 462 358 L 480 330 L 538 330 L 520 358 Z', 'detail', 1.6, 0.75)}
+    ${line('M 401 344 L 459 344 M 471 344 L 529 344 M 430 330 L 421 358 M 500 330 L 491 358', 'detail', 1, 0.4)}
+    ${line('M 352 358 L 352 324 Q 366 312 380 324 L 380 358 M 352 336 L 380 336', 'detail', 1.6, 0.7)}
+    ${line('M 772 552 Q 786 522 812 532 Z M 792 540 L 803 552 L 796 560', 'detail', 1.6, 0.7)}
+    ${line('M 368 700 L 432 700 M 375 700 L 381 716 L 419 716 L 425 700 M 412 700 L 412 686 Q 412 680 404 680 L 398 682', 'detail', 1.6, 0.8)}
+    ${line('M 244 530 L 336 530 L 330 556 L 250 556 Z M 250 396 L 262 396 L 262 404', 'detail', 1.6, 0.75)}
+    ${line('M 252 412 L 248 428 M 258 412 L 258 430 M 264 412 L 268 428', 'detail', 1, 0.4)}
+    ${line('M 600 522 L 680 522 L 680 538 L 600 538 Z M 606 533 L 674 533', 'detail', 1.6, 0.8)}
+    ${line('M 420 575 L 420 800 M 460 372 L 460 560', 'detail', 1, 0.22)}
+    ${line('M 150 800 L 150 832 L 850 832 L 850 800', 'detail', 1.2, 0.3)}
+    ${line('M 792 608 L 808 608 M 792 616 L 808 616 M 792 624 L 808 624 M 792 632 L 808 632', 'detail', 1, 0.6)}
+    ${[[470, 770], [620, 770], [250, 770], [520, 520]].map(([x, y]) => line(`M ${x} ${y} h 8 v 8 h -8 Z`, 'detail', 1.2, 0.55)).join('')}
+    <g class="air" fill="none" stroke="${C.cyan}" stroke-width="1.6" stroke-linecap="round">${[548, 560].map((y) => `<path d="M 608 ${y} q 8 6 16 0 t 16 0 t 16 0 t 16 0"/>`).join('')}</g>
+    <!-- north arrow and title block, like a real drawing sheet -->
+    <circle class="draw" cx="905" cy="150" r="26" fill="none" stroke="${P}" stroke-opacity=".45" stroke-width="1.4"/>
+    <path class="north" d="M 905 126 L 914 160 L 905 153 L 896 160 Z" fill="${P}" fill-opacity=".75"/>
+    ${line('M 700 895 L 960 895 L 960 955 L 700 955 Z M 700 915 L 960 915 M 830 915 L 830 955 M 890 915 L 890 955', 'detail', 1.2, 0.4)}
+    <path class="titlemark" d="M 718 948 L 745 926 L 772 948" fill="none" stroke="${C.green}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
+    ${line('M 846 928 L 876 928 M 846 940 L 870 940 M 904 928 L 944 928 M 904 940 L 930 940', 'detail', 1.2, 0.35)}
+    <!-- hidden services, dashed: water from the tank to the kitchen sink, power to the lights -->
     <g class="services" fill="none" stroke-dasharray="7 7" stroke-width="1.8">
-      <path class="flow" d="M 307 350 L 307 600 L 352 600 L 352 716 L 420 716" stroke="${C.cyan}" stroke-opacity=".7"/>
+      <path class="flow" d="M 307 350 L 307 600 L 352 600 L 352 716 L 400 716" stroke="${C.cyan}" stroke-opacity=".7"/>
       <path class="flow" d="M 800 600 L 800 470 L 575 470 L 575 402" stroke="${C.amber}" stroke-opacity=".7"/>
       <path class="flow" d="M 800 600 L 800 690 L 700 690" stroke="${C.amber}" stroke-opacity=".7"/>
     </g>
@@ -83,8 +103,11 @@ export const maintenance = {
         <path class="leader" d="M ${mx} ${my} L ${fx} ${fy}" stroke="${C.green}" stroke-width="1.6" stroke-dasharray="3 5" fill="none"/>
         <g class="marker pop">
           <circle cx="${mx}" cy="${my}" r="40" fill="${C.ink}" stroke="${C.green}" stroke-width="2.6"/>
-          ${icon(ic, mx, my, 40, { color: C.greenText, width: 2.2 })}
+          ${icon(ic, mx, my, 40, { color: C.greenText, width: 2.2, cls: 'ico' })}
+          <path class="check" d="M ${mx - 15} ${my + 1} L ${mx - 4} ${my + 12} L ${mx + 17} ${my - 11}" fill="none" stroke="${C.greenText}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
         </g>
+        <circle class="ring2 pop" cx="${mx}" cy="${my}" r="40" fill="none" stroke="${C.green}" stroke-width="2"/>
+        <g class="burst">${Array.from({ length: 10 }, (_, j) => { const a = j / 10 * Math.PI * 2; return `<path d="M ${fx + Math.cos(a) * 22} ${fy + Math.sin(a) * 22} L ${fx + Math.cos(a) * 44} ${fy + Math.sin(a) * 44}" stroke="${C.greenText}" stroke-width="2.4" stroke-linecap="round"/>`; }).join('')}</g>
       </g>`).join('')}
     <!-- always on call: a 24/7 ring -->
     <g class="clock pop">
@@ -100,12 +123,15 @@ export const maintenance = {
     const art = el.querySelector('svg.art');
     const lines = svg.createDrawable($('svg.art .draw'));
     tl.set(lines, { draw: '0 0' }, 0)
+      .set(svg.createDrawable($('.check')), { draw: '0 0' }, 0)
+      .set($('.ring2, .burst, .air, .north, .titlemark'), { opacity: 0 }, 0)
       .set($('.hatches path, .fan, .services, .lamp, .lamp-glow, .crack, .stitches path, .drip, .valve, .fault .bad, .fault .good, .fault .leader, .marker, .clock'), { opacity: 0 }, 0)
       .set($('.crack'), { stroke: C.amber }, 0)
       .set($('.marker, .valve, .clock'), { scale: 0.2 }, 0);
 
     // 1. the blueprint draws itself
-    tl.add(lines, { draw: ['0 0', '0 1'], duration: 1400, delay: stagger(28), ease: 'inOutQuad' }, T + 500)
+    tl.add(lines, { draw: ['0 0', '0 1'], duration: 1300, delay: stagger(17), ease: 'inOutQuad' }, T + 400)
+      .add($('.north, .titlemark'), { opacity: [0, 1], duration: 600 }, T + 2200)
       .add($('.hatches path'), { opacity: [0, 1], duration: 500, delay: stagger(20) }, T + 1400)
       .add($('.lamp, .fan'), { opacity: [0, 1], duration: 400 }, T + 2400);
 
@@ -129,13 +155,19 @@ export const maintenance = {
       tl.add(q('.marker'), { opacity: [0, 1], scale: [0.2, 1], duration: 650, ease: 'outBack(2.2)' }, t)
         .add(q('.leader'), { opacity: [0, 1], strokeDashoffset: [40, 0], duration: 500 }, t + 250)
         .add(q('.bad'), { opacity: 0, duration: 400 }, t + 550)
-        .add(q('.good'), { opacity: [0, 1], scale: [0.4, 1.25, 1], duration: 700 }, t + 550);
+        .add(q('.good'), { opacity: [0, 1], scale: [0.4, 1.25, 1], duration: 700 }, t + 550)
+        .add(q('.burst'), { opacity: [1, 0], scale: [0.5, 1.5], duration: 650, ease: 'outCubic' }, t + 550)
+        .add(q('.ring2'), { opacity: [0.9, 0], scale: [1, 1.9], duration: 800, ease: 'outCubic' }, t + 600)
+        .add(q('.ico'), { opacity: [1, 0], duration: 250 }, t + 750)
+        .add(svg.createDrawable(q('.check')), { draw: ['0 0', '0 1'], duration: 420, ease: 'outQuad' }, t + 850);
       const k = f.classList[1];
       if (k === 'fault-leak') tl.add($('.valve'), { opacity: [0, 1], scale: [0.2, 1], duration: 500, ease: 'outBack(2)' }, t + 500);
       if (k === 'fault-crack') tl.add($('.crack'), { stroke: [C.amber, C.green], duration: 500 }, t + 500)
         .add($('.stitches path'), { opacity: [0, 1], scale: [0.2, 1], duration: 300, delay: stagger(70) }, t + 550);
       if (k === 'fault-power') tl.add($('.lamp-glow'), { opacity: [0, 1], scale: [0.6, 1], duration: 600 }, t + 550);
-      if (k === 'fault-cool') tl.add($('.fan'), { rotate: [200, 200 + 360 * 7], duration: 7000 - (t - T - 6100), ease: 'linear' }, t + 550);
+      if (k === 'fault-cool') tl.add($('.air'), { opacity: [0, 1], duration: 500 }, t + 600)
+        .add($('.air path'), { translateX: [0, 16], duration: 800, loop: 5, ease: 'linear' }, t + 600)
+        .add($('.fan'), { rotate: [200, 200 + 360 * 7], duration: 7000 - (t - T - 6100), ease: 'linear' }, t + 550);
     });
 
     // 5. always on call: the 24/7 ring closes around the clock
