@@ -1,0 +1,61 @@
+:root {
+  --ink: #08090b;
+  --ink-2: #111317;
+  --paper: #f2ede4;
+  --muted: rgba(242, 237, 228, .62);
+  --faint: rgba(242, 237, 228, .16);
+  --green: #01A652;
+  --green-text: #3fd186;
+  --grey: #595A5C;
+  --accent: var(--green-text);            /* each department sets its own */
+  --serif: "Cormorant Garamond", "Times New Roman", serif;
+  --sans: "Manrope", system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; background: var(--ink); color: var(--paper); overflow: hidden; }
+body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
+
+/* the film is authored on a fixed canvas (1080×1920 portrait or 1920×1080 landscape) and scaled to fit */
+#frame { position: fixed; inset: 0; display: grid; place-items: center; background: var(--ink); }
+#stage { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; overflow: hidden; background: var(--ink); }
+#stage.portrait { width: 1080px; height: 1920px; }
+#stage.landscape { width: 1920px; height: 1080px; }
+
+.scene { position: absolute; inset: 0; visibility: hidden; }
+.scene.on { visibility: visible; }
+.scene .glow { position: absolute; inset: 0; background: radial-gradient(60% 45% at 50% 42%, var(--glow, rgba(1,166,82,.14)), transparent 70%); }
+.scene .grid { position: absolute; inset: 0; opacity: .5;
+  background-image: linear-gradient(var(--faint) 1px, transparent 1px), linear-gradient(90deg, var(--faint) 1px, transparent 1px);
+  background-size: 60px 60px; mask-image: radial-gradient(70% 55% at 50% 45%, #000 20%, transparent 80%); }
+.scene svg.art { position: absolute; overflow: visible; }
+
+/* department lockup: the Tamlik wordmark, a hairline, the department name */
+.lockup { position: absolute; display: flex; flex-direction: column; align-items: center; gap: 22px; }
+.lockup .logo { width: 300px; height: auto; display: block; }
+.lockup .rule { width: 64px; height: 2px; background: var(--accent); }
+.lockup .dept { font-family: var(--sans); font-weight: 600; font-size: 34px; letter-spacing: .5em; padding-left: .5em; color: var(--accent); white-space: nowrap; }
+.tagline { position: absolute; font-family: var(--serif); font-weight: 300; font-style: italic; font-size: 76px; line-height: 1.05; color: var(--paper); text-align: center; white-space: nowrap; }
+.tagline b { font-weight: 400; font-style: normal; color: var(--accent); }
+
+.portrait .lockup { left: 0; right: 0; top: 150px; }
+.portrait svg.art { left: 40px; top: 420px; width: 1000px; height: 1000px; }
+.portrait .tagline { left: 0; right: 0; top: 1500px; }
+
+.landscape .lockup { left: 1120px; width: 700px; top: 330px; }
+.landscape svg.art { left: 90px; top: 60px; width: 960px; height: 960px; }
+.landscape .tagline { left: 1120px; width: 700px; top: 600px; }
+
+.footer { position: absolute; font-size: 22px; letter-spacing: .42em; padding-left: .42em; color: var(--muted); text-align: center; }
+.portrait .footer { left: 0; right: 0; top: 1790px; }
+.landscape .footer { left: 1120px; width: 700px; top: 960px; }
+.portrait svg.art { top: 440px; }
+.portrait .tagline { top: 1520px; }
+
+/* closing caption, same content as the tower film's */
+.caption { position: absolute; left: 0; right: 0; display: flex; flex-direction: column; align-items: center; gap: 26px; }
+.caption .site { font-family: var(--serif); font-weight: 300; font-size: 50px; letter-spacing: .3em; padding-left: .3em; }
+.caption .row { display: flex; gap: 34px; font-size: 22px; letter-spacing: .12em; color: var(--muted); }
+.caption .row span { display: flex; align-items: center; gap: 10px; }
+.caption .row svg { width: 26px; height: 26px; stroke: var(--green-text); }
+.portrait .caption { top: 1480px; }
+.landscape .caption { top: 760px; }
