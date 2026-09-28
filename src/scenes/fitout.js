@@ -19,8 +19,10 @@ const light = { sun: 0.5, warm: 0, pend: 0, expo: 0.85 };
 const pieces = [], tiles = [], pendants = [], accessories = [];
 let rug;
 
+const loading = [];                                    // every texture must arrive before the film starts (else it draws black)
 const tex = (loader, path, repeat, srgb) => {
-  const t = loader.load(path); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat);
+  const t = loader.load(path, undefined, undefined, () => console.warn('texture failed', path));
+  loading.push(new Promise((res) => { const i = setInterval(() => { if (t.image && t.image.complete !== false) { clearInterval(i); res(); } }, 50); })); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(repeat, repeat);
   if (srgb) t.colorSpace = THREE.SRGBColorSpace; t.anisotropy = 8; return t;
 };
 
@@ -191,6 +193,8 @@ export const fitout = {
     sun.castShadow = true; sun.shadow.mapSize.set(2048, 2048); sun.shadow.bias = -0.0004; sun.shadow.normalBias = 0.03;
     Object.assign(sun.shadow.camera, { left: -7, right: 7, top: 7, bottom: -7, near: 1, far: 30 });
     scene.add(sun, sun.target); fitout._sun = sun;
+    await Promise.all(loading);
+    renderer.compile(scene, camera);
   },
 
   // ~14 s: paint, floor, rug, furniture, pendants and light, accessories; the camera drifts through it all
