@@ -146,4 +146,5 @@ window.__duration = END;
 window.__seek = (ms) => { tl.seek(ms); drawScenes(ms); };
 if (Q.has('t')) tl.seek(+Q.get('t') * 1000);
 else if (!RECORD) { tl.play(); sound?.start().catch(() => {}); }
+stage.classList.add('ready');
 window.__ready = true;

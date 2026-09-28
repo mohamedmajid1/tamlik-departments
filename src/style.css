@@ -17,6 +17,7 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 
 /* the film is authored on a fixed canvas (1080×1920 portrait or 1920×1080 landscape) and scaled to fit */
 #frame { position: fixed; inset: 0; display: grid; place-items: center; background: var(--ink); }
+#stage:not(.ready) > * { visibility: hidden !important; }   /* black until every asset has loaded */
 #stage { position: absolute; left: 50%; top: 50%; transform-origin: 0 0; overflow: hidden; background: var(--ink); }
 #stage.portrait { width: 1080px; height: 1920px; }
 #stage.landscape { width: 1920px; height: 1080px; }
