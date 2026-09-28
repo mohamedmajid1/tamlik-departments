@@ -59,3 +59,36 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 .caption .row svg { width: 26px; height: 26px; stroke: var(--green-text); }
 .portrait .caption { top: 1480px; }
 .landscape .caption { top: 760px; }
+
+/* ---- motion layers ---- */
+.layer { position: absolute; inset: 0; background: var(--ink); }
+.scene.layer { visibility: visible; clip-path: inset(0 calc(100% - var(--in, 100) * 1%) 0 0); }
+svg.art *:not([transform]), .pop, .spin { transform-box: fill-box; transform-origin: center; }
+svg .ch, .dept .ch, .tagline .wd { display: inline-block; }
+.lockup .rule { transform-origin: center; }
+#sweep { position: absolute; top: 0; bottom: 0; width: 4px; margin-left: -2px; left: calc(var(--sw, 0) * 1%); opacity: var(--swo, 0);
+  background: #7dffb8; box-shadow: 0 0 18px 4px rgba(1,166,82,.9), 0 0 80px 18px rgba(1,166,82,.45); z-index: 5; }
+#black { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 6; }
+
+#intro .big, #outro .big { position: absolute; left: 0; right: 0; display: flex; justify-content: center; }
+.biglogo { width: 760px; height: auto; overflow: visible; }
+.biglogo path { transform-box: fill-box; }
+#intro .glow, #outro .glow { background: radial-gradient(55% 40% at 50% 45%, rgba(1,166,82,.14), transparent 70%); }
+#intro .depts { position: absolute; left: 0; right: 0; display: flex; justify-content: center; align-items: center; gap: 26px;
+  font-weight: 600; font-size: 28px; letter-spacing: .42em; }
+#intro .depts span { display: inline-block; padding-left: .42em; }
+#intro .depts i { width: 8px; height: 8px; border-radius: 50%; background: var(--faint); display: inline-block; }
+.portrait #intro .big { top: 760px; }
+.portrait #intro .depts { top: 1080px; flex-direction: column; gap: 30px; }
+.landscape #intro .big { top: 330px; }
+.landscape #intro .depts { top: 640px; }
+
+#outro .trio { position: absolute; left: 0; right: 0; display: flex; justify-content: center; gap: 56px; }
+#outro .dep { display: flex; align-items: center; gap: 16px; font-weight: 600; font-size: 30px; letter-spacing: .36em; color: var(--accent); }
+#outro .dep .dot { width: 12px; height: 12px; border-radius: 50%; background: var(--accent); box-shadow: 0 0 16px var(--accent); }
+.portrait #outro .big { top: 520px; }
+.portrait #outro .trio { top: 900px; flex-direction: column; align-items: center; gap: 44px; }
+.portrait #outro .caption { top: 1340px; }
+.landscape #outro .big { top: 250px; }
+.landscape #outro .trio { top: 560px; }
+.landscape #outro .caption { top: 720px; }

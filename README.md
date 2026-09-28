@@ -1,29 +1,51 @@
 # Tamlik Departments
 
-An Anime.js 4 advertising loop for three Tamlik departments, played on the hallway screens:
+A 53-second animated loop (Anime.js 4) advertising three Tamlik departments on the hallway screens. It plays
+forever with no interaction and has its own soundtrack.
 
-- **Tamlik Maintenance**: *We keep it perfect.* A villa blueprint; the green line finds and fixes each fault.
-- **Tamlik Media**: *We make you seen.* A Tamlik feed, the channels, growth, and a circuit to every screen.
-- **Tamlik Fit-out**: *We shape your space.* An empty floor plan becomes a finished room.
+| Time | Scene |
+|---|---|
+| 0–4 s | The Tamlik logo builds: the roofs slide together, the wordmark writes on, the three department names |
+| 4–18 s | **Tamlik Maintenance**, *We keep it perfect*: a villa blueprint draws itself, its hidden pipes and wiring appear, four faults (a leak, a crack, a flickering light, a stuttering AC) turn amber, then green markers land and fix each one; a 24/7 ring closes |
+| 18–32 s | **Tamlik Media**, *We make you seen*: a phone rises with a Tamlik feed (stills from the tower film), likes float up, Instagram, TikTok, LinkedIn and Facebook join, a growth line climbs, and a circuit from a Tamlik chip lights a laptop, a display and a website |
+| 32–46 s | **Tamlik Fit-out**, *We shape your space*: an empty floor plan draws, the concrete shell lifts away to walnut and marble, furniture lands piece by piece, the lamps come on, and real material samples fan out |
+| 46–53 s | The logo returns with the three departments and the contact caption, then fades to black and loops |
 
-The idea: the green roof stroke of the Tamlik logo is one line that builds every department's world.
+A green line wipes across the screen between scenes. The layout adapts to portrait (1080×1920) or landscape (1920×1080).
 
-This is a separate project from `tamlik-experience` (the tower film). It copies what it needs from there
-(logo artwork, colours, textures, film stills, the recording helper) and never changes it.
+This is a separate project from `tamlik-experience` (the tower film). It copies what it needs from there (logo
+artwork, colours, textures, film stills, music, the recording approach) and never changes it.
 
-## Status
+## Playing it
 
-Style frames (finished frame of each scene, portrait and landscape): `frames/`. Animation comes next.
+- **Live page:** open `index.html` from any static server (GitHub Pages serves it). It animates live in the browser and
+  is light enough for the screens. Sound starts on its own where the browser allows autoplay with sound (kiosk
+  browsers such as Fully Kiosk: turn on *Autoplay Audio*), otherwise on the first tap.
+- **Video:** `renders/departments_portrait.mp4` and `renders/departments_landscape.mp4` (with sound), attached to the
+  GitHub release. For screens that play video files.
 
-## Preview
+URL options: `?o=portrait|landscape` forces a layout, `?only=maintenance|media|fitout` plays a single department spot
+(for social media), `?t=20` freezes at 20 s, `?mute` silences it.
 
-Serve the folder with any static server and open `index.html?still=maintenance` (or `media`, `fitout`);
-add `&o=landscape` for the landscape layout. Or render stills: `node tools/still.mjs media portrait out.png`
-(set `CHROME` to a Chrome/Edge path on Windows).
+## Tools
+
+- `node tools/record.mjs --o portrait` (or `landscape`, add `--only media` for a spot): frame-exact video with motion
+  blur and the soundtrack, into `renders/`. Set `CHROME` to a Chrome/Edge path on Windows.
+- `node tools/mix-audio.mjs`: rebuilds `assets/audio/loop.m4a`. **If the timing in `src/main.js` changes, update `L`
+  and the cue times there.**
+- `node tools/sheet.mjs portrait out 6 20 35`: frames at chosen seconds, for checking.
+
+## Code
+
+- `src/main.js`: builds the layers and the master timeline (intro, wipes, outro, loop, sound, recording hooks).
+- `src/scenes/*.js`: each department's artwork (SVG in a 1000×1000 box) and its `animate(tl, el, T)`.
+- `src/brand.js`: logo, colours, icons, caption. `src/style.css`: layout for both orientations.
 
 ## Credits
 
 - [Anime.js](https://animejs.com) 4.5.0 (MIT), `vendor/`.
 - [Tabler Icons](https://tabler.io/icons) (MIT), `assets/icons/`.
 - Textures: [Poly Haven](https://polyhaven.com) (CC0), `assets/tex/`.
+- Music: "Cosmic Waves" by [HoliznaCC0](https://archive.org/details/holizna-cc-0-cosmic-waves) (CC0). Sound effects are
+  synthesised in `tools/mix-audio.mjs`.
 - Film stills: rendered from the Tamlik tower film, `assets/posts/`.
