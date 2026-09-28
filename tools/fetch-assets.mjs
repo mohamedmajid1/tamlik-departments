@@ -20,7 +20,7 @@ const MODELS = ['mid_century_lounge_chair', 'modern_arm_chair_01', 'modern_coffe
   'potted_plant_02', 'potted_plant_04', 'brass_vase_01', 'ceramic_vase_02',
   'throw_pillows_01', 'standing_picture_frame_02'];
 // surfaces (1k jpg): diffuse, OpenGL normal, roughness
-const TEXTURES = ['wood_floor', 'marble_01', 'plastered_wall', 'concrete_floor_02', 'poly_wool_herringbone', 'hessian_230', 'walnut_veneer'];
+const TEXTURES = ['wood_floor', 'plastered_wall', 'concrete_floor_02', 'poly_wool_herringbone', 'hessian_230'];
 
 for (const name of MODELS) {
   const g = (await (await fetch(`https://api.polyhaven.com/files/${name}`)).json()).gltf['1k'].gltf;

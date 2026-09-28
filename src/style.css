@@ -105,3 +105,10 @@ svg .ch, .dept .ch, .tagline .wd { display: inline-block; }
 
 /* a soft cinematic vignette over everything */
 #vignette { position: absolute; inset: 0; pointer-events: none; z-index: 4; background: radial-gradient(120% 90% at 50% 48%, transparent 58%, rgba(0,0,0,.42)); }
+
+/* first visit: the logo and a thin bar while the furniture downloads (after that the browser keeps it) */
+#loading { position: fixed; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 36px; background: var(--ink); z-index: 10; transition: opacity .8s ease; }
+#loading svg { width: min(46vw, 420px); height: auto; }
+#loading i { display: block; width: min(24vw, 200px); height: 2px; background: linear-gradient(90deg, transparent, var(--green), transparent) 0 0 / 50% 100% no-repeat, rgba(242,237,228,.12); animation: load 1.4s ease-in-out infinite; }
+@keyframes load { from { background-position: -100% 0, 0 0; } to { background-position: 200% 0, 0 0; } }
+#loading.gone { opacity: 0; pointer-events: none; }
