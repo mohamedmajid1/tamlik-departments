@@ -63,12 +63,15 @@ body { font-family: var(--sans); -webkit-font-smoothing: antialiased; }
 
 /* ---- motion layers ---- */
 .layer { position: absolute; inset: 0; background: var(--ink); }
-.scene.layer { visibility: visible; clip-path: inset(0 calc(100% - var(--in, 100) * 1%) 0 0); }
+/* the wipe: a soft, feathered edge (30% of the width) crosses the frame, the green line rides its middle */
+.scene.layer { visibility: visible;
+  -webkit-mask-image: linear-gradient(90deg, #000 calc(var(--in, 100) * 1.3% - 30%), transparent calc(var(--in, 100) * 1.3%));
+  mask-image: linear-gradient(90deg, #000 calc(var(--in, 100) * 1.3% - 30%), transparent calc(var(--in, 100) * 1.3%)); }
 svg.art *:not([transform]), .pop, .spin { transform-box: fill-box; transform-origin: center; }
 svg .ch, .dept .ch, .tagline .wd { display: inline-block; }
 .lockup .rule { transform-origin: center; }
-#sweep { position: absolute; top: 0; bottom: 0; width: 4px; margin-left: -2px; left: calc(var(--sw, 0) * 1%); opacity: var(--swo, 0);
-  background: #7dffb8; box-shadow: 0 0 18px 4px rgba(1,166,82,.9), 0 0 80px 18px rgba(1,166,82,.45); z-index: 5; }
+#sweep { position: absolute; top: 0; bottom: 0; width: 4px; margin-left: -2px; left: calc(var(--sw, 0) * 1.3% - 15%); opacity: var(--swo, 0);
+  background: #7dffb8; box-shadow: 0 0 22px 6px rgba(1,166,82,.75), 0 0 120px 30px rgba(1,166,82,.35); z-index: 5; }
 #black { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; z-index: 6; }
 
 #intro .big, #outro .big { position: absolute; left: 0; right: 0; display: flex; justify-content: center; }

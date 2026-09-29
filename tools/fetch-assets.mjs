@@ -18,9 +18,14 @@ async function save(path, url) {
 const MODELS = ['mid_century_lounge_chair', 'modern_arm_chair_01', 'modern_coffee_table_01', 'side_table_01',
   'modern_ceiling_lamp_01', 'modern_wooden_cabinet', 'potted_plant_01',
   'potted_plant_02', 'potted_plant_04', 'brass_vase_01', 'ceramic_vase_02',
-  'throw_pillows_01', 'standing_picture_frame_02'];
+  'throw_pillows_01', 'standing_picture_frame_02',
+  // maintenance: the repair kit; fit-out: more decor
+  'ladder_sectioned_01', 'metal_toolbox', 'adjustable_wrench', 'Drill_01', 'wooden_bucket_02', 'cardboard_box_01',
+  'wooden_display_shelves_01', 'ceramic_vase_03', 'ceramic_vase_04', 'wicker_basket_02'];
 // surfaces (1k jpg): diffuse, OpenGL normal, roughness
-const TEXTURES = ['wood_floor', 'plastered_wall', 'concrete_floor_02', 'poly_wool_herringbone', 'hessian_230'];
+const TEXTURES = ['wood_floor', 'plastered_wall', 'concrete_floor_02', 'poly_wool_herringbone', 'hessian_230', 'red_brick_03', 'rough_linen'];
+// lighting environments (1k HDR) for reflections
+const HDRIS = ['studio_small_09', 'lebombo'];
 
 for (const name of MODELS) {
   const g = (await (await fetch(`https://api.polyhaven.com/files/${name}`)).json()).gltf['1k'].gltf;
@@ -30,6 +35,11 @@ for (const name of MODELS) {
 for (const name of TEXTURES) {
   const f = await (await fetch(`https://api.polyhaven.com/files/${name}`)).json();
   for (const [m, file] of [[f.Diffuse ? 'Diffuse' : 'col_1', 'diffuse'], ['nor_gl', 'nor_gl'], ['Rough', 'rough']]) if (f[m]) await save(join(root, 'tex3d', name, `${file}.jpg`), f[m]['1k'].jpg.url);
+}
+
+for (const name of HDRIS) {
+  const f = await (await fetch(`https://api.polyhaven.com/files/${name}`)).json();
+  await save(join(root, 'hdr', `${name}.hdr`), f.hdri['1k'].hdr.url);
 }
 
 // music: "Once More With You" by Loyalty Freak Music (CC0), album Minimal Ambient Bounce

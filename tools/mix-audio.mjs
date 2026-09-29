@@ -61,33 +61,39 @@ boom(0.3, 0.45); whoosh(0.2, 1.4, 0.18, 0); chime(1.9, 0.07);
 // the wipes between departments
 [3.4, 17.4, 31.4, 45.4].forEach((t, i) => whoosh(t, 1.3, 0.3, i + 1));
 
-// Maintenance (T = 4): the blueprint draws, faults appear, four fixes, the 24/7 ring
-hiss(4.5, 1.5, 0.05, 0);
-shot(7.6, 'sin(2*PI*233*t)*sin(2*PI*247*t)*exp(-3*t)', 1.2, 0.12);          // a low, uneasy warning
-for (let lp = 0; lp < 4; lp++) for (let d = 0; d < 3; d++) plink(7.8 + d * 0.21 + lp * 0.64 + 0.3, 2093, 0.07, -0.4);   // drips
-[10.1, 11.15, 12.2, 13.25].forEach((t, i) => { click(t + 0.1, 0.22); bell(t + 0.55, [659.26, 783.99, 880, 1046.5][i], 0.09); blip(t + 0.95, 1760, 0.05); });   // fixed: a chime, then the tick
-chime(14.5, 0.06);
+// Maintenance (T = 4): a flickering, sparking lamp, a dripping leak, then diagnosis, the kit, the scan line fixing it all
+for (const t of [4.3, 5.5, 6.4, 7.9, 9.1, 10.6]) { shot(t, '(random(0)*2-1)*exp(-40*t)*(0.6+0.4*sin(2*PI*90*t))', 0.35, 0.22, -0.1); click(t + 0.03, 0.12); }   // sparks crackle
+layer(`sine=f=100:d=7:r=48000,aformat=channel_layouts=stereo,volume='0.025*(0.5+0.5*sin(2*PI*7*t))*lt(t,7.6)':eval=frame,${place(4.0)}`);   // a failing ballast hum
+for (let k = 0; k < 6; k++) for (let d = 0; d < 3; d++) { const t = 4.2 + d * 0.43 + k * 1.3 + 0.64; if (t < 12.4) plink(t, [1568, 1760, 2093][d], 0.07, 0.35); }   // drips into the bucket
+[8.1, 8.36, 8.62].forEach((t, i) => blip(t, [880, 1046.5, 1318.5][i], 0.07, [-0.5, 0, 0.5][i]));   // diagnosis rings
+for (let i = 0; i < 5; i++) thud(9.2 + i * 0.15 + 0.4, 0.22, (i - 2) * 0.3);                        // the kit lands
+whoosh(10.2, 3.6, 0.16, 12);                                                                         // the scan line sweeps
+layer(`sine=f=520:d=3.6:r=48000,aformat=channel_layouts=stereo,volume='0.02*sin(PI*t/3.6)':eval=frame,${place(10.2)}`);
+[11.44, 12.02, 12.45].forEach((t, i) => { chime(t + 0.5, 0.05, [[659.26, 880, 1318.5], [783.99, 1046.5, 1568], [880, 1318.5, 1760]][i]); });
+shot(11.2, '(random(0)*2-1)*exp(-6*t)*min(t/0.3,1)*0.5', 0.8, 0.12, -0.4);                            // rubble rushes back into the wall
+click(12.3, 0.3);                                                                                    // the lamp clicks on
+pad([220, 329.63, 440], 12.8, 4, [[0, 0], [1.2, 0.025], [2.6, 0.02], [4, 0]]);
 
-// Media (T = 18): the phone rises, a like, hearts, the channels, growth, the circuit
-whoosh(18.5, 1.0, 0.14, 6); pop(20.5, 0.3);
-for (let i = 0; i < 9; i++) for (let lp = 0; lp < 2; lp++) plink(20.7 + i * 0.19 + lp * 1.8, [1760, 1975.5, 2093][i % 3], 0.05, 0.4);
-[21.6, 21.74, 21.88, 22.02].forEach((t, i) => pop(t, 0.2, i < 3 ? -0.5 : 0.6));
-pop(21.9, 0.22, -0.6);
-shot(23.2, 'sin(2*PI*(440*t+330*t*t))*exp(-1.2*t)*min(t/0.02,1)', 1.3, 0.06, 0.5);   // the growth line climbs
-blip(25.35, 880, 0.1); [25.7, 25.81, 25.92].forEach((t) => blip(t, 1318.5, 0.05));
-[26.5, 26.65, 26.8].forEach((t, i) => pop(t, 0.18, [-0.6, 0, 0.6][i]));
-for (let i = 0; i < 3; i++) for (let lp = 0; lp < 4; lp++) blip(27 + i * 0.25 + lp * 0.9, 1760, 0.035, [-0.6, 0, 0.6][i]);
+// Media (T = 18): the studio lights strike, the clapper, rolling, the slider, the drone, likes on the monitor
+[18.5, 19.02, 19.54].forEach((t, i) => { thud(t, 0.28, [-0.6, 0.6, 0.2][i]); layer(`anoisesrc=c=white:a=0.3:seed=${80 + i}:d=0.5:r=48000,highpass=f=3000,aformat=channel_layouts=stereo,volume='0.05*exp(-9*t)':eval=frame,${place(t)}`); });
+shot(21.15, '(random(0)*2-1)*exp(-120*t) + sin(2*PI*1800*t)*exp(-60*t)*0.5', 0.12, 0.45);              // CLAP
+blip(21.2, 1760, 0.08); blip(21.35, 1760, 0.08);                                                     // rolling
+layer(`anoisesrc=c=brown:a=0.3:seed=91:d=8:r=48000,lowpass=f=300,aformat=channel_layouts=stereo,volume='0.05*sin(PI*t/8)':eval=frame,${place(21.4)}`);   // the slider glides
+layer(`sine=f=190:d=8:r=48000,aformat=channel_layouts=stereo,volume='0.035*min(t/2,1)*min((8-t)/1.5,1)*(0.8+0.2*sin(2*PI*31*t))':eval=frame,${place(22.8)}`);   // drone motors
+layer(`sine=f=380:d=8:r=48000,aformat=channel_layouts=stereo,volume='0.016*min(t/2,1)*min((8-t)/1.5,1)':eval=frame,${place(22.8)}`);
+whoosh(23.6, 2.4, 0.12, 13);                                                                          // the drone lifts off
+for (let i = 0; i < 12; i++) plink(27.3 + i * 0.3, [1760, 1975.5, 2093, 2349.3][i % 4], 0.045, 0.5);    // likes
 
-// Fit-out (T = 32): paint runs down the walls, the floor flips to oak, the rug, the furniture drops in,
-// the pendants lower and switch on, the finishing touches
-layer(`anoisesrc=c=pink:a=0.5:seed=61:d=2.6:r=48000,highpass=f=700,lowpass=f=4200,aformat=channel_layouts=stereo,volume='0.07*sin(PI*t/2.6)*(0.7+0.3*sin(2*PI*3*t))':eval=frame,${place(32.7)}`);
-for (let i = 0; i < 16; i++) shot(34.75 + i * 0.17, 'sin(2*PI*(420-300*t)*t)*exp(-38*t)+ (random(0)*2-1)*exp(-90*t)*0.3', 0.2, 0.12, (i % 5 - 2) * 0.3);   // tiles tock over
-whoosh(36.7, 0.9, 0.1, 8);
-for (let i = 0; i < 9; i++) thud(37.2 + i * 0.23 + 0.32, 0.3, (i % 5 - 2) * 0.25);
-whoosh(40.6, 1.0, 0.08, 10);
-click(41.7, 0.3); click(41.95, 0.15);
-pad([220, 329.63, 440], 41.7, 5, [[0, 0], [1.2, 0.03], [3.3, 0.025], [5, 0]]);
-for (let i = 0; i < 7; i++) pop(42.3 + i * 0.17, 0.14, (i % 3 - 1) * 0.5);
+// Fit-out (T = 32): paint runs down the walls, the floor turns to oak, the rug, the furniture settles in,
+// the downlights and pendants, the finishing touches
+layer(`anoisesrc=c=pink:a=0.5:seed=61:d=2.8:r=48000,highpass=f=700,lowpass=f=4200,aformat=channel_layouts=stereo,volume='0.07*sin(PI*t/2.8)*(0.7+0.3*sin(2*PI*3*t))':eval=frame,${place(32.6)}`);
+for (let i = 0; i < 18; i++) shot(34.6 + i * 0.14, 'sin(2*PI*(380-260*t)*t)*exp(-34*t)+(random(0)*2-1)*exp(-90*t)*0.25', 0.2, 0.1, (i % 5 - 2) * 0.3);   // tiles turn over
+whoosh(36.7, 1.1, 0.1, 8);
+for (let i = 0; i < 12; i++) thud(37.0 + i * 0.27 + 0.8, 0.2, (i % 5 - 2) * 0.25);                    // pieces settle
+for (let i = 0; i < 6; i++) click(40.4 + i * 0.12, 0.12);                                             // downlights
+whoosh(40.7, 1.1, 0.08, 10);
+pad([220, 329.63, 440], 41.8, 5, [[0, 0], [1.2, 0.03], [3.3, 0.025], [5, 0]]);
+for (let i = 0; i < 10; i++) pop(42.2 + i * 0.14, 0.12, (i % 3 - 1) * 0.5);                           // finishing touches
 
 // outro: the logo, the three names, the caption
 chime(46.1, 0.08); [46.7, 46.86, 47.02].forEach((t, i) => blip(t, [880, 1046.5, 1318.5][i], 0.05));

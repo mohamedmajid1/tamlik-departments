@@ -6,12 +6,12 @@ forever with no interaction and has its own soundtrack.
 | Time | Scene |
 |---|---|
 | 0–4 s | The Tamlik logo builds: the roofs slide together, the wordmark writes on, the three department names |
-| 4–18 s | **Tamlik Maintenance**, *We keep it perfect*: a villa blueprint draws itself on a drawing sheet (solar panels, water heater, dish, kitchen, bathroom, split AC, breaker panel, sockets, foundations, north arrow, title block), its hidden pipes and wiring appear, four faults (a leak, a crack, a flickering light, a stuttering AC) turn amber, then green markers land, each fault bursts green and the tool turns into a check mark; a 24/7 ring closes |
-| 18–32 s | **Tamlik Media**, *We make you seen*: a phone rises with a Tamlik feed (stills from the tower film), likes float up, Instagram, TikTok, LinkedIn and Facebook join, a growth line climbs, and a circuit from a Tamlik chip lights a laptop, a display and a website |
-| 32–46 s | **Tamlik Fit-out**, *We shape your space*: a 3D walk-through. The camera stands in an empty flat: raw walls are painted from the ceiling down, the concrete floor flips over tile by tile to oak, a jute rug unrolls, real furniture drops into place, the pendants lower and switch on, and the sunset fills the window. Framed prints of the Tamlik tower go up on the wall |
+| 4–18 s | **Tamlik Maintenance**, *We keep it perfect*: a 3D apartment with real problems: a broken pendant sparks and flickers, water drips from a stained ceiling into a bucket, a wall is cracked open to the bricks with rubble below, grime everywhere. Green rings diagnose each fault, the Tamlik kit arrives (ladder, toolbox, drill), and a green scan line sweeps the room: the rubble flies back and the wall seals, the lamp swings straight and lights, the leak stops and the puddle dries, the walls come up clean and the room turns warm |
+| 18–32 s | **Tamlik Media**, *We make you seen*: a real-estate film shoot in a 3D studio. A staged living room with a big print of the Tamlik tower; the softboxes strike one by one, the clapper snaps, the cinema camera rolls and glides along its slider, a drone lifts off and hovers over the set, and the director's monitor shows the live shot (really rendered from the cinema camera) with likes rising over it |
+| 32–46 s | **Tamlik Fit-out**, *We shape your space*: a 3D walk-through of a flat being finished: raw walls painted from the ceiling down, the concrete floor turning over to oak, a jute rug, furniture settling into place (sectional sofa with a throw, lounge and arm chairs, coffee table with books, sideboard, display shelves, arc floor lamp, plants), downlights and pendants coming on, sheer curtains stirring in the sunset, prints of the Tamlik tower |
 | 46–53 s | The logo returns with the three departments and the contact caption, then fades to black and loops |
 
-A green line wipes across the screen between scenes. The layout adapts to portrait (1080×1920) or landscape (1920×1080).
+Scenes dissolve into each other behind a soft, feathered edge with a green line riding through it. The layout adapts to portrait (1080×1920) or landscape (1920×1080).
 
 This is a separate project from `tamlik-experience` (the tower film). It copies what it needs from there (logo
 artwork, colours, textures, film stills, music, the recording approach) and never changes it.
@@ -38,8 +38,8 @@ URL options: `?o=portrait|landscape` forces a layout, `?only=maintenance|media|f
 ## Code
 
 - `src/main.js`: builds the layers and the master timeline (intro, wipes, outro, loop, sound, recording hooks).
-- `src/scenes/*.js`: each department's artwork and its `animate(tl, el, T)`. Maintenance and Media are SVG (a 1000×1000 box);
-  Fit-out is a Three.js room (`init`, `render`) whose objects Anime.js moves directly.
+- `src/scenes/*.js`: each department is a Three.js scene (`init`, `animate(tl, el, T)`, `render`) whose objects Anime.js
+  moves directly. `src/three/kit.js` is shared: renderer, HDR reflections, soft shadows, bloom, AO when recording, loaders.
 - `node tools/fetch-assets.mjs`: downloads the furniture, textures (Poly Haven) and the music source.
 - `src/brand.js`: logo, colours, icons, caption. `src/style.css`: layout for both orientations.
 
@@ -47,7 +47,7 @@ URL options: `?o=portrait|landscape` forces a layout, `?only=maintenance|media|f
 
 - [Anime.js](https://animejs.com) 4.5.0 (MIT), `vendor/`.
 - [Tabler Icons](https://tabler.io/icons) (MIT), `assets/icons/`.
-- Furniture models and textures: [Poly Haven](https://polyhaven.com) (CC0), `assets/models/`, `assets/tex3d/`, `assets/tex/`.
+- Furniture and tool models, textures and HDR environments: [Poly Haven](https://polyhaven.com) (CC0), `assets/models/`, `assets/tex3d/`, `assets/hdr/`.
 - Music: "Once More With You" by [Loyalty Freak Music](https://archive.org/details/LoyaltyFreakMusic-minimalAmbientBounce) (CC0). Sound effects are
   synthesised in `tools/mix-audio.mjs`.
 - Film stills: rendered from the Tamlik tower film, `assets/posts/`.

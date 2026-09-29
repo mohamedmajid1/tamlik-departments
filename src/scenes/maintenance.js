@@ -1,178 +1,301 @@
-// Tamlik Maintenance: a villa drawn as a white-line blueprint (Omani style: stepped parapets, arched openings),
-// its hidden services (water, power, cooling) and four faults that the green line reaches and fixes.
-// Art lives in a 1000×1000 box; animate() adds this scene's motion to the master timeline at time T (ms).
-import { svg, stagger } from '../../vendor/anime.esm.min.js';
-import { C, icon } from '../brand.js';
+// Tamlik Maintenance: an apartment with real problems, and the Tamlik team fixing them.
+// A broken pendant sparks and flickers, water drips from a stained ceiling into a bucket, a wall is cracked open
+// to the bricks with rubble below, grime everywhere, cold dim light. Green rings diagnose each fault, the
+// tools arrive, and a green scan line (the roof stroke of the Tamlik logo) sweeps the room: rubble flies back
+// into the wall and seals, the lamp swings straight and lights, the leak stops and the puddle dries, the walls
+// come up clean, and the room turns warm. animate() adds the motion at T (ms); render() draws the current state.
+import { THREE, tex, model, seat, ready, makeView, aim, shotTween, canvasTex, holoRing, GREEN } from '../three/kit.js';
+import { stagger } from '../../vendor/anime.esm.min.js';
+import { C } from '../brand.js';
 
-const P = C.paper;
-const line = (d, cls = 'wall', w = 2.2, o = 0.85) => `<path class="draw ${cls}" d="${d}" fill="none" stroke="${P}" stroke-opacity="${o}" stroke-width="${w}" stroke-linejoin="round" stroke-linecap="round"/>`;
+const HW = 3.5, HD = 2.75, H = 2.9;                  // half width, half depth, ceiling
+let V, SHOT;
+const rig = {};
+const S = { dirt: 1, warm: 0, flick: 0.15, lamp: 0, scan: -4.2, scanOn: 0, spark: 0, sparkOn: 1, swing: 0, win: 0.35, expo: 0.62 };
+const U = { dirt: { value: 1 } };
+const F = {};                                          // the faults and their parts
+const holos = [], tools = [], debris = [], drips = [], ripples = [];
 
-// stepped Omani parapet along a roof edge from x0 to x1 at height y
-function parapet(x0, x1, y, step = 26, h = 14) {
-  let d = `M ${x0} ${y}`;
-  for (let x = x0; x < x1 - 1; x += step * 2) {
-    const xe = Math.min(x + step, x1);
-    d += ` L ${x} ${y - h} L ${xe} ${y - h} L ${xe} ${y}`;
-    if (xe < x1) d += ` L ${Math.min(xe + step, x1)} ${y}`;
-  }
-  return d;
+// grime on walls, floor and ceiling (world-space value noise), cleaned off as uDirt goes to 0
+function grime(mat) {
+  mat.onBeforeCompile = (sh) => {
+    sh.uniforms.uDirt = U.dirt;
+    sh.vertexShader = 'varying vec3 vWp;\n' + sh.vertexShader.replace('#include <worldpos_vertex>', '#include <worldpos_vertex>\nvWp = (modelMatrix * vec4(transformed, 1.0)).xyz;');
+    sh.fragmentShader = `uniform float uDirt; varying vec3 vWp;
+      float hsh(vec3 p){ return fract(sin(dot(p, vec3(12.9898, 78.233, 37.719))) * 43758.5453); }
+      float vn(vec3 p){ vec3 i = floor(p), f = fract(p); f = f * f * (3.0 - 2.0 * f);
+        return mix(mix(mix(hsh(i), hsh(i + vec3(1,0,0)), f.x), mix(hsh(i + vec3(0,1,0)), hsh(i + vec3(1,1,0)), f.x), f.y),
+                   mix(mix(hsh(i + vec3(0,0,1)), hsh(i + vec3(1,0,1)), f.x), mix(hsh(i + vec3(0,1,1)), hsh(i + vec3(1,1,1)), f.x), f.y), f.z); }
+      ` + sh.fragmentShader.replace('#include <map_fragment>', `#include <map_fragment>
+        float gN = vn(vWp * 2.3) * 0.6 + vn(vWp * 7.0) * 0.4;
+        float streak = smoothstep(0.55, 0.9, vn(vec3(vWp.x * 6.0, vWp.y * 0.6, vWp.z * 6.0)));
+        diffuseColor.rgb *= mix(vec3(1.0), vec3(0.78, 0.74, 0.66) * (0.72 + 0.35 * gN) - streak * 0.12, uDirt);`);
+  };
+  return mat;
 }
-// arched opening (Omani pointed-round arch)
-const arch = (x, y, w, h) => `M ${x} ${y + h} L ${x} ${y + w * 0.5} Q ${x} ${y} ${x + w / 2} ${y} Q ${x + w} ${y} ${x + w} ${y + w * 0.5} L ${x + w} ${y + h} Z`;
 
-// [kind, icon, fault x, y, marker x, y]
-const FAULTS = [
-  ['leak', 'droplet', 352, 716, 150, 470],
-  ['crack', 'hammer', 600, 640, 935, 440],
-  ['power', 'bolt', 575, 402, 470, 245],
-  ['cool', 'propeller', 632, 322, 800, 225],
-];
+// the damage on the back wall, painted into a canvas: a hole down to the bricks, peeled plaster, long cracks
+function damageTexture() {
+  const brick = new Image(); brick.src = 'assets/tex3d/red_brick_03/diffuse.jpg';
+  const t = canvasTex(1536, 1280, (x, w, h) => {
+    const rnd = (() => { let s = 11; return () => (s = (s * 16807) % 2147483647) / 2147483647; })();
+    const cx = w * 0.5, cy = h * 0.5;
+    // an irregular but natural outline: a sum of slow waves plus small chips
+    const outline = (R, jag) => { const p = []; for (let i = 0; i < 90; i++) { const a = i / 90 * Math.PI * 2;
+      const r = R * (1 + 0.16 * Math.sin(a * 3 + 1.1) + 0.1 * Math.sin(a * 5 + 2.3) + 0.06 * Math.sin(a * 9) + jag * (rnd() - 0.5));
+      p.push([cx + Math.cos(a) * r * 1.2, cy + Math.sin(a) * r * 0.9]); } return p; };
+    const path = (p) => { x.beginPath(); p.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.closePath(); };
+    // a dirty, water-marked halo around the damage
+    const halo = x.createRadialGradient(cx, cy, 120, cx, cy, 620); halo.addColorStop(0, 'rgba(70,58,44,.35)'); halo.addColorStop(1, 'rgba(70,58,44,0)');
+    x.fillStyle = halo; x.fillRect(0, 0, w, h);
+    // long cracks running out across the wall: dark hairline with a lit lower edge (so they read as depth)
+    for (let k = 0; k < 11; k++) {
+      let a = k / 11 * Math.PI * 2 + rnd() * 0.4, px = cx + Math.cos(a) * 250, py = cy + Math.sin(a) * 190, lw = 6;
+      const seg = [[px, py]];
+      for (let s = 0; s < 16; s++) { a += (rnd() - 0.5) * 0.7; px += Math.cos(a) * 30; py += Math.sin(a) * 30; seg.push([px, py]); }
+      for (const [off, col] of [[2, 'rgba(235,228,215,.55)'], [0, 'rgba(24,19,15,.9)']]) {
+        let lwi = lw; x.strokeStyle = col; x.lineCap = 'round';
+        for (let s = 1; s < seg.length; s++) { x.lineWidth = Math.max(1, lwi * (off ? 0.6 : 1)); x.beginPath(); x.moveTo(seg[s - 1][0], seg[s - 1][1] + off); x.lineTo(seg[s][0], seg[s][1] + off); x.stroke(); lwi *= 0.86; }
+      }
+    }
+    // peeled plaster around the hole: a rough, paler band
+    const outer = outline(300, 0.08), inner = outline(220, 0.14);
+    path(outer); x.fillStyle = '#b9ad99'; x.fill();
+    x.lineWidth = 3; x.strokeStyle = 'rgba(60,50,40,.55)'; x.stroke();
+    // the hole itself: bricks, in shadow at the edges
+    x.save(); path(inner); x.clip();
+    if (brick.complete && brick.naturalWidth) x.drawImage(brick, 0, 0, w, w * brick.naturalHeight / brick.naturalWidth); else { x.fillStyle = '#6b3a2a'; x.fillRect(0, 0, w, h); }
+    const g = x.createRadialGradient(cx, cy, 40, cx, cy, 300); g.addColorStop(0, 'rgba(0,0,0,.1)'); g.addColorStop(0.7, 'rgba(0,0,0,.45)'); g.addColorStop(1, 'rgba(0,0,0,.85)');
+    x.fillStyle = g; x.fillRect(0, 0, w, h); x.restore();
+    path(inner); x.lineWidth = 7; x.strokeStyle = 'rgba(225,216,200,.85)'; x.stroke();
+  });
+  brick.onload = () => t.userData.redraw();
+  return t;
+}
+// a water stain on the ceiling: pale, spreading tide marks
+const stainTexture = () => canvasTex(512, 512, (x, w, h) => {
+  for (let i = 0; i < 4; i++) {
+    const r = 235 - i * 45;
+    const g = x.createRadialGradient(w / 2, h / 2, r * 0.2, w / 2, h / 2, r);
+    g.addColorStop(0, 'rgba(150,118,70,.10)'); g.addColorStop(0.82, 'rgba(150,115,65,.12)'); g.addColorStop(0.93, 'rgba(120,88,45,.38)'); g.addColorStop(1, 'rgba(120,88,45,0)');
+    x.fillStyle = g; x.beginPath(); x.ellipse(w / 2 + i * 6, h / 2 - i * 4, r, r * 0.86, i * 0.7, 0, Math.PI * 2); x.fill();
+  }
+});
 
 export const maintenance = {
   id: 'maintenance', name: 'MAINTENANCE', accent: C.greenText, glow: 'rgba(1,166,82,.16)',
   tagline: 'We keep it <b>perfect</b>',
-  art() {
-    const G = 800;                                   // ground line
-    return `
-    <defs>
-      <radialGradient id="mFix" r="0.5"><stop offset="0" stop-color="${C.green}" stop-opacity=".55"/><stop offset="1" stop-color="${C.green}" stop-opacity="0"/></radialGradient>
-      <radialGradient id="mBad" r="0.5"><stop offset="0" stop-color="${C.amber}" stop-opacity=".6"/><stop offset="1" stop-color="${C.amber}" stop-opacity="0"/></radialGradient>
-    </defs>
-    <!-- dimension lines, like an architect's drawing -->
-    ${line('M 150 870 L 850 870 M 150 858 L 150 882 M 850 858 L 850 882 M 500 862 L 500 878', 'dim', 1.2, 0.3)}
-    ${line('M 80 800 L 80 340 M 68 800 L 92 800 M 68 560 L 92 560 M 68 340 L 92 340', 'dim', 1.2, 0.3)}
-    <!-- ground and a palm -->
-    ${line(`M 40 ${G} L 960 ${G}`, 'ground', 2.4, 0.6)}
-    <g class="hatches">${Array.from({ length: 23 }, (_, i) => `<path d="M ${60 + i * 40} ${G + 4} l -16 16" stroke="${P}" stroke-opacity=".22" stroke-width="1.2"/>`).join('')}</g>
-    ${line('M 925 800 C 921 730 919 670 925 612', 'palm', 2, 0.7)}
-    ${line('M 925 612 C 908 594 887 594 870 606 M 925 612 C 942 592 962 592 980 604 M 925 612 C 917 588 900 578 882 578 M 925 612 C 936 586 953 578 970 580 M 925 612 C 925 590 921 578 913 568', 'palm', 2, 0.7)}
-    <!-- the villa -->
-    ${line(`M 150 ${G} L 150 560 L 850 560 L 850 ${G}`, 'wall')}
-    ${line(parapet(150, 230, 560), 'wall', 2, 0.75)}${line(parapet(690, 850, 560), 'wall', 2, 0.75)}
-    ${line('M 230 560 L 230 360 L 690 360 L 690 560', 'wall')}
-    ${line(parapet(230, 690, 360), 'wall', 2, 0.75)}
-    ${line('M 150 575 L 850 575', 'wall', 1.2, 0.4)}${line('M 230 372 L 690 372', 'wall', 1.2, 0.4)}
-    ${line(arch(440, 650, 120, 150), 'wall', 2.2, 0.9)}${line('M 500 668 L 500 800', 'wall', 1.2, 0.5)}
-    ${[200, 300, 640, 740].map((x) => line(arch(x, 640, 60, 100), 'wall', 1.8, 0.75)).join('')}
-    ${[280, 380, 520, 610].map((x) => line(arch(x, 420, 50, 90), 'wall', 1.8, 0.75)).join('')}
-    ${line('M 225 740 L 265 740 M 325 740 L 365 740 M 665 740 L 705 740 M 765 740 L 805 740', 'wall', 1.2, 0.5)}
-    <!-- roof kit: water tank and the AC condenser -->
-    ${line('M 272 350 L 272 318 Q 272 306 284 306 L 330 306 Q 342 306 342 318 L 342 350', 'wall', 1.8, 0.75)}
-    ${line('M 595 358 L 595 296 L 670 296 L 670 358', 'wall', 1.8, 0.75)}
-    <circle class="draw" cx="632" cy="322" r="18" fill="none" stroke="${P}" stroke-opacity=".75" stroke-width="1.8"/>
-    <g transform="translate(632 322)"><g class="spin fan"><circle r="19" fill="none"/>${[0, 120, 240].map((a) => `<path d="M 0 0 C 6 -6 12 -8 14 -2" transform="rotate(${a})" fill="none" stroke="${P}" stroke-width="1.8" stroke-opacity=".8"/>`).join('')}</g></g>
-    <!-- the rest of the house: roof kit, rooms and fixtures, foundations -->
-    ${line('M 392 358 L 410 330 L 468 330 L 450 358 Z M 462 358 L 480 330 L 538 330 L 520 358 Z', 'detail', 1.6, 0.75)}
-    ${line('M 401 344 L 459 344 M 471 344 L 529 344 M 430 330 L 421 358 M 500 330 L 491 358', 'detail', 1, 0.4)}
-    ${line('M 352 358 L 352 324 Q 366 312 380 324 L 380 358 M 352 336 L 380 336', 'detail', 1.6, 0.7)}
-    ${line('M 772 552 Q 786 522 812 532 Z M 792 540 L 803 552 L 796 560', 'detail', 1.6, 0.7)}
-    ${line('M 368 700 L 432 700 M 375 700 L 381 716 L 419 716 L 425 700 M 412 700 L 412 686 Q 412 680 404 680 L 398 682', 'detail', 1.6, 0.8)}
-    ${line('M 244 530 L 336 530 L 330 556 L 250 556 Z M 250 396 L 262 396 L 262 404', 'detail', 1.6, 0.75)}
-    ${line('M 252 412 L 248 428 M 258 412 L 258 430 M 264 412 L 268 428', 'detail', 1, 0.4)}
-    ${line('M 600 522 L 680 522 L 680 538 L 600 538 Z M 606 533 L 674 533', 'detail', 1.6, 0.8)}
-    ${line('M 420 575 L 420 800 M 460 372 L 460 560', 'detail', 1, 0.22)}
-    ${line('M 150 800 L 150 832 L 850 832 L 850 800', 'detail', 1.2, 0.3)}
-    ${line('M 792 608 L 808 608 M 792 616 L 808 616 M 792 624 L 808 624 M 792 632 L 808 632', 'detail', 1, 0.6)}
-    ${[[470, 770], [620, 770], [250, 770], [520, 520]].map(([x, y]) => line(`M ${x} ${y} h 8 v 8 h -8 Z`, 'detail', 1.2, 0.55)).join('')}
-    <g class="air" fill="none" stroke="${C.cyan}" stroke-width="1.6" stroke-linecap="round">${[548, 560].map((y) => `<path d="M 608 ${y} q 8 6 16 0 t 16 0 t 16 0 t 16 0"/>`).join('')}</g>
-    <!-- north arrow and title block, like a real drawing sheet -->
-    <circle class="draw" cx="905" cy="150" r="26" fill="none" stroke="${P}" stroke-opacity=".45" stroke-width="1.4"/>
-    <path class="north" d="M 905 126 L 914 160 L 905 153 L 896 160 Z" fill="${P}" fill-opacity=".75"/>
-    ${line('M 700 895 L 960 895 L 960 955 L 700 955 Z M 700 915 L 960 915 M 830 915 L 830 955 M 890 915 L 890 955', 'detail', 1.2, 0.4)}
-    <path class="titlemark" d="M 718 948 L 745 926 L 772 948" fill="none" stroke="${C.green}" stroke-width="3.2" stroke-linejoin="round" stroke-linecap="round"/>
-    ${line('M 846 928 L 876 928 M 846 940 L 870 940 M 904 928 L 944 928 M 904 940 L 930 940', 'detail', 1.2, 0.35)}
-    <!-- hidden services, dashed: water from the tank to the kitchen sink, power to the lights -->
-    <g class="services" fill="none" stroke-dasharray="7 7" stroke-width="1.8">
-      <path class="flow" d="M 307 350 L 307 600 L 352 600 L 352 716 L 400 716" stroke="${C.cyan}" stroke-opacity=".7"/>
-      <path class="flow" d="M 800 600 L 800 470 L 575 470 L 575 402" stroke="${C.amber}" stroke-opacity=".7"/>
-      <path class="flow" d="M 800 600 L 800 690 L 700 690" stroke="${C.amber}" stroke-opacity=".7"/>
-    </g>
-    <rect class="draw" x="786" y="600" width="28" height="40" rx="3" fill="none" stroke="${P}" stroke-opacity=".75" stroke-width="1.6"/>
-    <g class="lamp">${line('M 575 372 L 575 392', 'wall', 1.6, 0.7)}<path d="M 562 402 L 588 402 L 581 392 L 569 392 Z" fill="${P}" fill-opacity=".85"/></g>
-    <circle class="lamp-glow" cx="575" cy="420" r="60" fill="url(#mFix)"/>
-    <!-- the faults -->
-    <path class="crack" d="M 600 588 L 588 612 L 606 632 L 592 656 L 611 678 L 600 702" fill="none" stroke="${C.amber}" stroke-width="2.4" stroke-linejoin="round"/>
-    <g class="stitches" stroke="${C.green}" stroke-width="2.2" stroke-linecap="round">${[604, 628, 652, 674, 694].map((y) => `<path d="M 588 ${y} L 614 ${y - 6}"/>`).join('')}</g>
-    <g class="drips">${[0, 1, 2].map(() => `<path class="drip" d="M 352 728 q -5 8 0 12 q 5 -4 0 -12 Z" fill="${C.cyan}"/>`).join('')}</g>
-    <circle class="valve pop" cx="352" cy="716" r="9" fill="${C.ink}" stroke="${C.green}" stroke-width="2.4"/>
-    <!-- markers: the green line reaches each fault, the tool fixes it -->
-    ${FAULTS.map(([k, ic, fx, fy, mx, my]) => `
-      <g class="fault fault-${k}">
-        <circle class="bad" cx="${fx}" cy="${fy}" r="30" fill="url(#mBad)"/>
-        <circle class="good" cx="${fx}" cy="${fy}" r="30" fill="url(#mFix)"/>
-        <path class="leader" d="M ${mx} ${my} L ${fx} ${fy}" stroke="${C.green}" stroke-width="1.6" stroke-dasharray="3 5" fill="none"/>
-        <g class="marker pop">
-          <circle cx="${mx}" cy="${my}" r="40" fill="${C.ink}" stroke="${C.green}" stroke-width="2.6"/>
-          ${icon(ic, mx, my, 40, { color: C.greenText, width: 2.2, cls: 'ico' })}
-          <path class="check" d="M ${mx - 15} ${my + 1} L ${mx - 4} ${my + 12} L ${mx + 17} ${my - 11}" fill="none" stroke="${C.greenText}" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
-        </g>
-        <circle class="ring2 pop" cx="${mx}" cy="${my}" r="40" fill="none" stroke="${C.green}" stroke-width="2"/>
-        <g class="burst">${Array.from({ length: 10 }, (_, j) => { const a = j / 10 * Math.PI * 2; return `<path d="M ${fx + Math.cos(a) * 22} ${fy + Math.sin(a) * 22} L ${fx + Math.cos(a) * 44} ${fy + Math.sin(a) * 44}" stroke="${C.greenText}" stroke-width="2.4" stroke-linecap="round"/>`; }).join('')}</g>
-      </g>`).join('')}
-    <!-- always on call: a 24/7 ring -->
-    <g class="clock pop">
-      <circle cx="130" cy="170" r="62" fill="none" stroke="${P}" stroke-opacity=".2" stroke-width="2"/>
-      <circle class="ring" cx="130" cy="170" r="62" fill="none" stroke="${C.green}" stroke-width="3" stroke-linecap="round" transform="rotate(-90 130 170)"/>
-      ${icon('clock-24', 130, 170, 60, { color: C.paper, width: 2 })}
-    </g>`;
+  full: true,
+  html: () => '<canvas class="room"></canvas><div class="shade top"></div><div class="shade bottom"></div>',
+
+  async init(el, { portrait, record }) {
+    V = await makeView(el.querySelector('canvas.room'), { portrait, record, env: 'lebombo', envIntensity: 0.35, bloom: 0.18 });
+    const { scene } = V;
+    scene.background = new THREE.Color(0x07080a);
+    SHOT = portrait
+      ? [{ x: 0.7, y: 1.4, z: 4.9, tx: -0.15, ty: 1.12, tz: -2.2 }, { x: 0.3, y: 1.35, z: 3.7, tx: -0.1, ty: 1.15, tz: -2.2 }]
+      : [{ x: 2.1, y: 1.62, z: 4.3, tx: -0.35, ty: 1.22, tz: -2.0 }, { x: 1.35, y: 1.5, z: 3.2, tx: -0.25, ty: 1.25, tz: -2.0 }];
+    Object.assign(rig, SHOT[0]);
+
+    // --- the room: grimy plaster walls, an oak floor, a window on the left wall
+    const wallMat = grime(new THREE.MeshStandardMaterial({ map: tex('assets/tex3d/plastered_wall/diffuse.jpg', 2, true), normalMap: tex('assets/tex3d/plastered_wall/nor_gl.jpg', 2), roughness: 0.93, color: 0xf2ece2 }));
+    const floorMat = grime(new THREE.MeshStandardMaterial({ map: tex('assets/tex3d/wood_floor/diffuse.jpg', 3, true), normalMap: tex('assets/tex3d/wood_floor/nor_gl.jpg', 3), roughnessMap: tex('assets/tex3d/wood_floor/rough.jpg', 3), roughness: 1 }));
+    const box = (w, h, d, x, y, z, m = wallMat) => { const b = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), m); b.position.set(x, y, z); b.receiveShadow = b.castShadow = true; scene.add(b); return b; };
+    const floor = new THREE.Mesh(new THREE.PlaneGeometry(2 * HW, 2 * HD + 3), floorMat); floor.rotation.x = -Math.PI / 2; floor.position.z = 1.5; floor.receiveShadow = true; scene.add(floor);
+    box(2 * HW, H, 0.2, 0, H / 2, -HD - 0.1);                                  // back wall
+    box(0.2, H, 2 * HD + 3, HW + 0.1, H / 2, 1.5);                              // right wall
+    box(0.2, 0.95, 2.2, -HW - 0.1, 0.475, -0.8); box(0.2, 0.55, 2.2, -HW - 0.1, H - 0.275, -0.8);   // left wall around the window
+    box(0.2, H, HD - 1.9 + 0.001, -HW - 0.1, H / 2, -HD + (HD - 1.9) / 2); box(0.2, H, 4.6, -HW - 0.1, H / 2, 2.6);
+    const ceil = new THREE.Mesh(new THREE.PlaneGeometry(2 * HW, 2 * HD + 3), grime(new THREE.MeshStandardMaterial({ color: 0xefebe4, roughness: 0.95 })));
+    ceil.rotation.x = Math.PI / 2; ceil.position.set(0, H, 1.5); scene.add(ceil);
+    const skirt = new THREE.MeshStandardMaterial({ color: 0xe6e0d6, roughness: 0.6 });
+    box(2 * HW, 0.09, 0.02, 0, 0.045, -HD + 0.01, skirt); box(0.02, 0.09, 2 * HD + 3, HW - 0.01, 0.045, 1.5, skirt);
+    // window: frame, glass, a pale sky behind
+    const frame = new THREE.MeshStandardMaterial({ color: 0xdedad2, roughness: 0.5 });
+    for (const [y, h] of [[0.97, 0.05], [2.33, 0.05]]) box(0.12, h, 2.2, -HW - 0.02, y, -0.8, frame);
+    for (const z of [-1.88, -0.8, 0.28]) box(0.12, 1.4, 0.05, -HW - 0.02, 1.65, z, frame);
+    F.sky = new THREE.Mesh(new THREE.PlaneGeometry(10, 6), new THREE.MeshBasicMaterial({ color: 0xbfd2e6, toneMapped: false }));
+    F.sky.rotation.y = Math.PI / 2; F.sky.position.set(-HW - 2.5, 1.8, -0.8); scene.add(F.sky);
+
+    // --- furniture: an armchair by the window, a side table and plant, a long cabinet
+    const put = async (name, x, z, ry = 0, s = 1, y = 0) => { const h = seat(await model(name), s); h.position.set(x, y, z); h.rotation.y = ry; scene.add(h); return h; };
+    await put('modern_arm_chair_01', -2.5, -1.3, 0.55);
+    await put('side_table_01', -2.6, -2.25, 0.2);
+    await put('potted_plant_02', -2.6, -2.25, 0, 0.62, 0.55);
+    await put('modern_wooden_cabinet', 2.25, -2.5, 0, 0.5);
+    await put('ceramic_vase_03', 1.7, -2.5, 0, 1, 0.34);
+    await put('potted_plant_01', 3.0, -1.4, 1.4, 1.1);
+
+    // --- fault 1: the wall, cracked open to the bricks, rubble on the floor
+    const HX = -1.3, HY = 1.25;
+    F.damage = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 2.0), new THREE.MeshStandardMaterial({ map: damageTexture(), transparent: true, roughness: 0.95, depthWrite: false, polygonOffset: true, polygonOffsetFactor: -2 }));
+    F.damage.position.set(HX, HY, -HD + 0.002); scene.add(F.damage);
+    const chunkMat = new THREE.MeshStandardMaterial({ color: 0xcfc6b8, roughness: 0.95 }), brickMat = new THREE.MeshStandardMaterial({ color: 0x8a4a34, roughness: 0.9 });
+    let sd = 3; const rnd = () => (sd = (sd * 16807) % 2147483647) / 2147483647;
+    for (let i = 0; i < 22; i++) {
+      const m = new THREE.Mesh(new THREE.DodecahedronGeometry(0.025 + rnd() * 0.05, 0), i % 4 ? chunkMat : brickMat);
+      m.scale.set(1 + rnd(), 0.6 + rnd() * 0.5, 1 + rnd()); m.castShadow = true;
+      const home = new THREE.Vector3(HX + (rnd() - 0.5) * 0.9, 0.03, -HD + 0.12 + rnd() * 0.55);
+      const wall = new THREE.Vector3(HX + (rnd() - 0.5) * 0.7, HY + (rnd() - 0.5) * 0.5, -HD + 0.02);
+      m.position.copy(home); m.rotation.set(rnd() * 3, rnd() * 3, rnd() * 3); scene.add(m); debris.push({ m, home, wall });
+    }
+
+    // --- fault 2: the broken pendant, hanging crooked, sparking, flickering
+    const LX = 0.05, LZ = -0.9;
+    F.lampPivot = new THREE.Group(); F.lampPivot.position.set(LX, H, LZ); scene.add(F.lampPivot);
+    const lamp = seat(await model('modern_ceiling_lamp_01'), 1.15);
+    const lb = new THREE.Box3().setFromObject(lamp); lamp.position.y = -(lb.max.y - lb.min.y); F.lampPivot.add(lamp);
+    F.bulb = new THREE.PointLight(0xffc98a, 0, 9, 1.6); F.bulb.position.set(0, -(lb.max.y - lb.min.y) + 0.12, 0); F.bulb.castShadow = true; F.bulb.shadow.mapSize.set(1024, 1024); F.bulb.shadow.bias = -0.002;
+    F.lampPivot.add(F.bulb);
+    F.glowBulb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 16, 12), new THREE.MeshBasicMaterial({ color: 0xffd7a0, toneMapped: false }));
+    F.glowBulb.position.copy(F.bulb.position); F.lampPivot.add(F.glowBulb);
+    // sparks: a burst of hot points (positions computed in the shader from seeded velocities)
+    const N = 70, sp = new Float32Array(N * 3), vel = new Float32Array(N * 3);
+    for (let i = 0; i < N; i++) { const a = rnd() * Math.PI * 2, u = rnd(); vel.set([Math.cos(a) * (0.4 + u), 0.2 + rnd() * 1.4, Math.sin(a) * (0.4 + u)], i * 3); }
+    const sg = new THREE.BufferGeometry(); sg.setAttribute('position', new THREE.BufferAttribute(sp, 3)); sg.setAttribute('vel', new THREE.BufferAttribute(vel, 3));
+    F.sparkU = { uT: { value: 0 }, uOn: { value: 1 } };
+    F.sparks = new THREE.Points(sg, new THREE.ShaderMaterial({ uniforms: F.sparkU, transparent: true, depthWrite: false, blending: THREE.AdditiveBlending,
+      vertexShader: `attribute vec3 vel; uniform float uT; varying float vA;
+        void main(){ vec3 p = position + vel * uT * 0.9 + vec3(0.0, -2.6, 0.0) * uT * uT; vA = (1.0 - uT);
+          vec4 mv = modelViewMatrix * vec4(p, 1.0); gl_Position = projectionMatrix * mv; gl_PointSize = (3.0 + 5.0 * vA) * (4.0 / -mv.z); }`,
+      fragmentShader: `uniform float uOn; varying float vA; void main(){ float d = length(gl_PointCoord - 0.5); if (d > 0.5) discard;
+          gl_FragColor = vec4(vec3(1.0, 0.72, 0.32) * 3.0, (1.0 - d * 2.0) * vA * uOn); }` }));
+    F.sparks.position.copy(F.bulb.position); F.sparks.frustumCulled = false; F.lampPivot.add(F.sparks);
+
+    // --- fault 3: the leak: a stain on the ceiling, drips into a bucket, a puddle
+    const WX = 1.05, WZ = -1.25;
+    F.stain = new THREE.Mesh(new THREE.PlaneGeometry(1.7, 1.7), new THREE.MeshStandardMaterial({ map: stainTexture(), roughness: 1, transparent: true, depthWrite: false }));
+    F.stain.rotation.x = Math.PI / 2; F.stain.position.set(WX, H - 0.004, WZ); scene.add(F.stain);
+    F.bucket = seat(await model('wooden_bucket_02'), 0.62); F.bucket.position.set(WX, 0, WZ); scene.add(F.bucket);
+    const water = new THREE.MeshPhysicalMaterial({ color: 0x7e8f9b, roughness: 0.02, metalness: 0.1, transparent: true, opacity: 0.6, clearcoat: 1, envMapIntensity: 1.3 });
+    F.puddle = new THREE.Mesh(new THREE.CircleGeometry(0.62, 48), water); F.puddle.rotation.x = -Math.PI / 2; F.puddle.position.set(WX + 0.42, 0.004, WZ + 0.38); F.puddle.scale.set(1.3, 0.85, 1); scene.add(F.puddle);
+    const dropGeo = new THREE.SphereGeometry(0.03, 14, 10); dropGeo.scale(1, 1.7, 1);
+    for (let i = 0; i < 3; i++) { const d = new THREE.Mesh(dropGeo, water.clone()); d.material.opacity = 0.85; d.position.set(WX + (i - 1) * 0.02, H - 0.02, WZ); scene.add(d); drips.push(d); }
+    // a thin trickle running from the stain into the bucket
+    F.stream = new THREE.Mesh(new THREE.CylinderGeometry(0.006, 0.009, H - 0.33, 10, 1, true), new THREE.MeshPhysicalMaterial({ color: 0xcfe3f0, roughness: 0.02, transparent: true, opacity: 0.55, envMapIntensity: 1.6 }));
+    F.stream.geometry.translate(0, -(H - 0.33) / 2, 0); F.stream.position.set(WX + 0.03, H, WZ); scene.add(F.stream);
+    for (let i = 0; i < 3; i++) { const r = new THREE.Mesh(new THREE.RingGeometry(0.02, 0.028, 32), new THREE.MeshBasicMaterial({ color: 0xdfefff, transparent: true, opacity: 0, depthWrite: false }));
+      r.rotation.x = -Math.PI / 2; r.position.set(WX, 0.25, WZ); scene.add(r); ripples.push(r); }
+
+    // --- the repair kit arrives: ladder under the lamp, toolbox, drill, wrench
+    const kit = async (name, x, z, ry, s = 1, y = 0, rx = 0) => { const h = seat(await model(name), s); h.position.set(x, y, z); h.rotation.set(rx, ry, 0); h.userData.y = y; scene.add(h); tools.push(h); return h; };
+    await kit('ladder_sectioned_01', 0.75, -1.6, -0.35, 1.0, 0, -0.22);
+    const tb = await kit('metal_toolbox', -0.35, 0.35, 0.4, 1.1);
+    await kit('Drill_01', -0.3, 0.33, 1.2, 1.2, 0.24);
+    await kit('adjustable_wrench', 0.05, 0.62, 0.9, 1.3, 0.01, -Math.PI / 2);
+    await kit('cardboard_box_01', 2.2, -1.2, 0.3, 0.9);
+
+    // --- diagnosis rings at each fault, and the green scan line
+    for (const [x, y, z] of [[HX, HY, -HD + 0.25], [LX, 2.05, LZ], [WX, 1.2, WZ]]) { const h = holoRing(0.32); h.position.set(x, y, z); scene.add(h); holos.push(h); }
+    F.scan = new THREE.Mesh(new THREE.PlaneGeometry(0.05, H), new THREE.MeshBasicMaterial({ color: 0x5dffb0, transparent: true, depthWrite: false, toneMapped: false, blending: THREE.AdditiveBlending }));
+    F.scan.rotation.y = Math.PI / 2; F.scan.scale.x = 1;
+    const scanWall = new THREE.Mesh(new THREE.PlaneGeometry(2 * HD + 1, H), new THREE.MeshBasicMaterial({ color: GREEN, transparent: true, opacity: 0.08, depthWrite: false, side: THREE.DoubleSide, toneMapped: false, blending: THREE.AdditiveBlending }));
+    scanWall.rotation.y = Math.PI / 2; scanWall.position.set(0, H / 2, 0);
+    F.scanG = new THREE.Group(); F.scanG.add(scanWall); scene.add(F.scanG);
+    for (const [y, z] of [[0.01, 0], [H - 0.01, 0]]) { const l = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.02, 2 * HD + 1), new THREE.MeshBasicMaterial({ color: 0x7dffc2, toneMapped: false })); l.position.set(0, y, z); F.scanG.add(l); }
+    const bk = new THREE.Mesh(new THREE.BoxGeometry(0.02, H, 0.02), new THREE.MeshBasicMaterial({ color: 0x7dffc2, toneMapped: false })); bk.position.set(0, H / 2, -HD + 0.02); F.scanG.add(bk);
+    F.scanLight = new THREE.PointLight(0x39ff9a, 0, 5, 1.5); F.scanLight.position.set(0, 1.4, -1); F.scanG.add(F.scanLight);
+
+    // --- light: cold dim daylight from the window; the room fill warms once it's fixed
+    F.hemi = new THREE.HemisphereLight(0xcfd9ea, 0x2b2621, 0.4); scene.add(F.hemi);
+    F.sun = new THREE.DirectionalLight(0xdce8ff, 1.1); F.sun.position.set(-9, 4.5, -0.5); F.sun.target.position.set(0, 0, -0.8);
+    F.sun.castShadow = true; F.sun.shadow.mapSize.set(2048, 2048); F.sun.shadow.bias = -0.0005; F.sun.shadow.normalBias = 0.03;
+    Object.assign(F.sun.shadow.camera, { left: -6, right: 6, top: 6, bottom: -6, near: 1, far: 25 });
+    scene.add(F.sun, F.sun.target);
+    F.fill = new THREE.PointLight(0xffd6a8, 0, 12, 1.2); F.fill.position.set(0.5, 2.6, 1.5); scene.add(F.fill);
+    await ready();
+    V.renderer.compile(scene, V.camera);
+    Object.assign(F, { HX, LX, WX });
   },
 
-  // ~14 s: draw the blueprint, show the services and the faults, then fix them one by one
+  // ~14 s: the problems, the diagnosis, the kit, the scan line fixing everything, a warm clean room
   animate(tl, el, T) {
-    const $ = (s) => [...el.querySelectorAll(s)];
-    const art = el.querySelector('svg.art');
-    const lines = svg.createDrawable($('svg.art .draw'));
-    tl.set(lines, { draw: '0 0' }, 0)
-      .set(svg.createDrawable($('.check')), { draw: '0 0' }, 0)
-      .set($('.ring2, .burst, .air, .north, .titlemark'), { opacity: 0 }, 0)
-      .set($('.hatches path, .fan, .services, .lamp, .lamp-glow, .crack, .stitches path, .drip, .valve, .fault .bad, .fault .good, .fault .leader, .marker, .clock'), { opacity: 0 }, 0)
-      .set($('.crack'), { stroke: C.amber }, 0)
-      .set($('.marker, .valve, .clock'), { scale: 0.2 }, 0);
+    const at = (t) => T + t;
+    const scanX = (x) => 6200 + ((x + HW + 0.7) / (2 * HW + 1.4)) * 3600;    // when the scan line passes x
+    // start state: everything broken
+    tl.set(S, { dirt: 1, warm: 0, flick: 0.15, lamp: 0, scan: -HW - 0.7, scanOn: 0, spark: 0, sparkOn: 1, swing: 0, win: 0.35, expo: 0.62 }, 0)
+      .set(rig, { ...SHOT[0] }, 0)
+      .set(F.damage.material, { opacity: 1 }, 0).set(F.stain.material, { opacity: 1 }, 0).set(F.puddle.scale, { x: 1.3, y: 0.85 }, 0)
+      .set(F.bucket.scale, { x: 1, y: 1, z: 1 }, 0).set(F.stream.scale, { y: 1 }, 0).set(F.stream.material, { opacity: 0.55 }, 0).set(F.lampPivot.rotation, { z: 0.42, x: 0.12 }, 0)
+      .set(holos.map((h) => h.scale), { x: 0.001, y: 0.001, z: 0.001 }, 0)
+      .set(tools.map((t) => t.scale), { x: 0.001, y: 0.001, z: 0.001 }, 0)
+      .set(debris.map((d) => d.m.scale), { x: 1, y: 1, z: 1 }, 0);
+    debris.forEach((d) => tl.set(d.m.position, { x: d.home.x, y: d.home.y, z: d.home.z }, 0));
+    holos.forEach((h) => tl.set(h.userData.check.material, { opacity: 0 }, 0));
+    holos.forEach((h) => tl.set(h.userData.ring.material, { opacity: 0.9 }, 0).set(h.userData.ring.scale, { x: 1, y: 1 }, 0));
+    tl.set(drips.map((d) => d.material), { opacity: 0.85 }, 0);
 
-    // 1. the blueprint draws itself
-    tl.add(lines, { draw: ['0 0', '0 1'], duration: 1300, delay: stagger(17), ease: 'inOutQuad' }, T + 400)
-      .add($('.north, .titlemark'), { opacity: [0, 1], duration: 600 }, T + 2200)
-      .add($('.hatches path'), { opacity: [0, 1], duration: 500, delay: stagger(20) }, T + 1400)
-      .add($('.lamp, .fan'), { opacity: [0, 1], duration: 400 }, T + 2400);
+    tl.add(rig, { ...shotTween(SHOT[0], SHOT[1]), duration: 15000, ease: 'inOutSine' }, at(-600));
 
-    // 2. hidden services appear and flow
-    tl.add($('.services'), { opacity: [0, 1], duration: 600 }, T + 2900)
-      .add($('.services .flow'), { strokeDashoffset: [0, -140], duration: 11000, ease: 'linear' }, T + 2900);
+    // 1. the problems: the lamp swings and flickers and sparks, water drips, ripples in the bucket
+    tl.add(F.lampPivot.rotation, { z: [0.42, 0.3, 0.42], duration: 1800, loop: 3, ease: 'inOutSine' }, at(0))
+      .add(S, { flick: [0.15, 0.9, 0.05, 0.6, 0.02, 0.85, 0.1, 0.4, 0.02, 0.7, 0.05], duration: 1500, loop: 4, ease: 'linear' }, at(0));
+    [300, 1500, 2400, 3900, 5100, 6600].forEach((t) => tl.add(F.sparkU.uT, { value: [0, 1], duration: 520, ease: 'outQuad' }, at(t)));
+    const fixLeak = scanX(F.WX);
+    drips.forEach((d, i) => tl.add(d.position, { y: [H - 0.02, 0.3], duration: 640, loop: Math.floor((fixLeak - 800) / 1300), loopDelay: 660, ease: 'inQuad' }, at(200 + i * 430)));
+    ripples.forEach((r, i) => tl.add(r.scale, { x: [1, 7], y: [1, 7], duration: 900, loop: Math.floor((fixLeak - 1200) / 1300), loopDelay: 400, ease: 'outQuad' }, at(840 + i * 430))
+      .add(r.material, { opacity: [0.7, 0], duration: 900, loop: Math.floor((fixLeak - 1200) / 1300), loopDelay: 400 }, at(840 + i * 430)));
 
-    // 3. faults, in amber: a crack creeps, a pipe drips, the light flickers, the fan stutters
-    const bad = $('.fault .bad');
-    tl.add(bad, { opacity: [0, 1], scale: [0.4, 1], duration: 500, delay: stagger(160) }, T + 3600)
-      .add($('.crack'), { opacity: [0, 1], duration: 150 }, T + 3600)
-      .add(svg.createDrawable($('.crack')), { draw: ['0 0', '0 1'], duration: 900, ease: 'inOutSine' }, T + 3600)
-      .add($('.drip'), { opacity: [{ to: 1, duration: 60 }, { to: 0, duration: 380, delay: 200 }], translateY: [0, 46], duration: 640, delay: stagger(210), loop: 3, ease: 'inQuad' }, T + 3800)
-      .add($('.lamp-glow'), { opacity: [0, 0.9, 0.1, 0.7, 0, 0.8, 0.05, 0.5, 0], duration: 2600, ease: 'linear' }, T + 3800)
-      .add($('.fan'), { rotate: [0, 50, 40, 130, 120, 200], duration: 2600, ease: 'linear' }, T + 3800);
+    // 2. diagnosis: a green ring on each fault
+    holos.forEach((h, i) => tl.add(h.scale, { x: [0.001, 1], y: [0.001, 1], z: [0.001, 1], duration: 700, ease: 'outBack(1.8)' }, at(4100 + i * 260))
+      .add(h.userData.ring2.scale, { x: [1, 1.12, 1], y: [1, 1.12, 1], duration: 900, loop: 3, ease: 'inOutSine' }, at(4800 + i * 260)));
 
-    // 4. the fixes: each marker lands, its leader reaches the fault, amber turns green
-    const fixes = $('.fault');
-    fixes.forEach((f, i) => {
-      const t = T + 6100 + i * 1050, q = (s) => f.querySelector(s);
-      tl.add(q('.marker'), { opacity: [0, 1], scale: [0.2, 1], duration: 650, ease: 'outBack(2.2)' }, t)
-        .add(q('.leader'), { opacity: [0, 1], strokeDashoffset: [40, 0], duration: 500 }, t + 250)
-        .add(q('.bad'), { opacity: 0, duration: 400 }, t + 550)
-        .add(q('.good'), { opacity: [0, 1], scale: [0.4, 1.25, 1], duration: 700 }, t + 550)
-        .add(q('.burst'), { opacity: [1, 0], scale: [0.5, 1.5], duration: 650, ease: 'outCubic' }, t + 550)
-        .add(q('.ring2'), { opacity: [0.9, 0], scale: [1, 1.9], duration: 800, ease: 'outCubic' }, t + 600)
-        .add(q('.ico'), { opacity: [1, 0], duration: 250 }, t + 750)
-        .add(svg.createDrawable(q('.check')), { draw: ['0 0', '0 1'], duration: 420, ease: 'outQuad' }, t + 850);
-      const k = f.classList[1];
-      if (k === 'fault-leak') tl.add($('.valve'), { opacity: [0, 1], scale: [0.2, 1], duration: 500, ease: 'outBack(2)' }, t + 500);
-      if (k === 'fault-crack') tl.add($('.crack'), { stroke: [C.amber, C.green], duration: 500 }, t + 500)
-        .add($('.stitches path'), { opacity: [0, 1], scale: [0.2, 1], duration: 300, delay: stagger(70) }, t + 550);
-      if (k === 'fault-power') tl.add($('.lamp-glow'), { opacity: [0, 1], scale: [0.6, 1], duration: 600 }, t + 550);
-      if (k === 'fault-cool') tl.add($('.air'), { opacity: [0, 1], duration: 500 }, t + 600)
-        .add($('.air path'), { translateX: [0, 16], duration: 800, loop: 5, ease: 'linear' }, t + 600)
-        .add($('.fan'), { rotate: [200, 200 + 360 * 7], duration: 7000 - (t - T - 6100), ease: 'linear' }, t + 550);
-    });
+    // 3. the Tamlik kit arrives
+    tools.forEach((t, i) => tl.add(t.scale, { x: [0.001, 1], y: [0.001, 1], z: [0.001, 1], duration: 600, ease: 'outBack(1.4)' }, at(5200 + i * 150))
+      .add(t.position, { y: [t.userData.y + 0.5, t.userData.y], duration: 650, ease: 'outCubic' }, at(5200 + i * 150)));
 
-    // 5. always on call: the 24/7 ring closes around the clock
-    tl.add($('.clock'), { opacity: [0, 1], scale: [0.4, 1], duration: 600, ease: 'outBack(1.8)' }, T + 10500)
-      .add(svg.createDrawable($('.clock .ring')), { draw: ['0 0', '0 1'], duration: 1400, ease: 'inOutQuad' }, T + 10700);
-    return { tagAt: T + 10300 };
+    // 4. the scan line sweeps the room, fixing everything it passes
+    tl.add(S, { scanOn: [0, 1], duration: 300 }, at(6000))
+      .add(S, { scan: [-HW - 0.7, HW + 0.7], duration: 3600, ease: 'inOutSine' }, at(6200))
+      .add(S, { scanOn: [1, 0], duration: 400 }, at(9800))
+      .add(S, { dirt: [1, 0], duration: 3600, ease: 'inOutSine' }, at(6200));
+    const confirm = (h, t) => tl.add(h.userData.ring.scale, { x: [1, 1.6], y: [1, 1.6], duration: 600, ease: 'outCubic' }, at(t))
+      .add(h.userData.ring.material, { opacity: [0.9, 0.25], duration: 600 }, at(t))
+      .add(h.userData.check.material, { opacity: [0, 1], duration: 400 }, at(t + 150))
+      .add(h.userData.check.scale, { x: [0.4, 1], y: [0.4, 1], duration: 500, ease: 'outBack(2)' }, at(t + 150));
+    // the wall: rubble flies back into the hole, the damage seals
+    const tw = scanX(F.HX);
+    debris.forEach((d, i) => tl.add(d.m.position, { x: [d.home.x, d.wall.x], y: [d.home.y, d.wall.y], z: [d.home.z, d.wall.z], duration: 700, ease: 'inOutQuad' }, at(tw - 250 + i * 18))
+      .add(d.m.scale, { x: 0.001, y: 0.001, z: 0.001, duration: 250 }, at(tw + 400 + i * 18)));
+    tl.add(F.damage.material, { opacity: [1, 0], duration: 900, ease: 'inOutSine' }, at(tw + 350));
+    confirm(holos[0], tw + 500);
+    // the lamp: swings straight, sparks stop, light on
+    const tlp = scanX(F.LX);
+    tl.add(F.lampPivot.rotation, { z: [0.42, 0], x: [0.12, 0], duration: 1100, ease: 'outElastic(1, .5)' }, at(tlp))
+      .add(S, { sparkOn: [1, 0], duration: 200 }, at(tlp))
+      .add(S, { lamp: [0, 1], flick: [0.3, 1], duration: 500 }, at(tlp + 300));
+    confirm(holos[1], tlp + 400);
+    // the leak: drips stop, the stain fades, the puddle dries, the bucket goes
+    tl.add(drips.map((d) => d.material), { opacity: 0, duration: 200 }, at(fixLeak))
+      .add(F.stream.scale, { y: [1, 0.001], duration: 500, ease: 'inQuad' }, at(fixLeak))
+      .add(F.stain.material, { opacity: [1, 0], duration: 900 }, at(fixLeak))
+      .add(F.puddle.scale, { x: [1.3, 0.001], y: [0.85, 0.001], duration: 1000, ease: 'inQuad' }, at(fixLeak + 100))
+      .add(F.bucket.scale, { x: 0.001, y: 0.001, z: 0.001, duration: 500, ease: 'inBack(1.5)' }, at(fixLeak + 600));
+    confirm(holos[2], fixLeak + 300);
+
+    // 5. the room warms up, the kit and the rings clear away
+    tl.add(S, { warm: [0, 1], win: [0.35, 1], expo: [0.62, 0.92], duration: 2600, ease: 'inOutSine' }, at(8800))
+      .add(tools.map((t) => t.scale), { x: 0.001, y: 0.001, z: 0.001, duration: 500, delay: stagger(90), ease: 'inBack(1.6)' }, at(11200))
+      .add(holos.map((h) => h.scale), { x: 0.001, y: 0.001, z: 0.001, duration: 500, delay: stagger(120), ease: 'inBack(1.6)' }, at(12000));
+    return { tagAt: at(10500) };
+  },
+
+  render() {
+    if (!V) return;
+    aim(V.camera, rig);
+    U.dirt.value = S.dirt;
+    const on = S.lamp > 0 ? S.flick : S.flick * 0.7;
+    F.bulb.intensity = 7 * on; F.glowBulb.material.color.setRGB(1, 0.84, 0.63).multiplyScalar(0.25 + 2.4 * on);
+    F.sparkU.uOn.value = S.sparkOn;
+    F.stream.material.opacity = 0.38 + 0.18 * S.flick;   // a shimmer, driven by the timeline
+    F.scanG.position.x = S.scan; F.scanG.visible = S.scanOn > 0.01; F.scanLight.intensity = 6 * S.scanOn;
+    F.scanG.children[0].material.opacity = 0.09 * S.scanOn;
+    F.hemi.intensity = 0.3 + 0.4 * S.warm; F.hemi.color.setRGB(0.81 + 0.19 * S.warm, 0.85 + 0.07 * S.warm, 0.92 - 0.12 * S.warm);
+    F.sun.intensity = 0.7 + 1.3 * S.warm; F.sun.color.setRGB(0.86 + 0.14 * S.warm, 0.9 - 0.05 * S.warm, 1 - 0.25 * S.warm);
+    F.fill.intensity = 3 * S.warm;
+    F.sky.material.color.setRGB(0.75 + 0.25 * S.win, 0.82 + 0.1 * S.win, 0.9 - 0.08 * S.win);
+    V.renderer.toneMappingExposure = S.expo;
+    for (const h of holos) h.quaternion.copy(V.camera.quaternion);          // rings face the camera
+    V.render();
   },
 };

@@ -75,9 +75,9 @@ const tl = createTimeline({ autoplay: false, loop: !RECORD, defaults: { ease: 'o
 // the wipe: a green line crosses the screen and uncovers the next layer behind it
 function wipe(el, at) {
   tl.set(el, { '--in': 0 }, 0)
-    .add(el, { '--in': [0, 100], duration: 1100, ease: 'inOutCubic' }, at)
-    .add(stage, { '--sw': [0, 100], duration: 1100, ease: 'inOutCubic' }, at)
-    .add(stage, { '--swo': [{ to: 1, duration: 150 }, { to: 1, duration: 800 }, { to: 0, duration: 150 }] }, at);
+    .add(el, { '--in': [0, 100], duration: 1500, ease: 'inOutSine' }, at)
+    .add(stage, { '--sw': [0, 100], duration: 1500, ease: 'inOutSine' }, at)
+    .add(stage, { '--swo': [{ to: 0.8, duration: 300 }, { to: 0.8, duration: 900 }, { to: 0, duration: 300 }] }, at);
 }
 tl.set(stage, { '--sw': 0, '--swo': 0 }, 0);
 
@@ -137,7 +137,7 @@ const sound = (() => {
 })();
 
 // 3D scenes draw themselves only while on screen (live: every frame; recording: after every seek)
-const live3d = SCENES.map((s, i) => ({ s, from: INTRO + i * SCENE - 1200, to: INTRO + (i + 1) * SCENE + 600 })).filter((x) => x.s.render);
+const live3d = SCENES.map((s, i) => ({ s, from: INTRO + i * SCENE - 1200, to: INTRO + (i + 1) * SCENE + 1000 })).filter((x) => x.s.render);
 function drawScenes(ms) { for (const x of live3d) if (ms >= x.from && ms <= x.to) x.s.render(); }
 if (!RECORD && live3d.length) (function loop() { drawScenes(tl.iterationCurrentTime ?? 0); requestAnimationFrame(loop); })();
 
