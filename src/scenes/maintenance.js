@@ -94,7 +94,7 @@ export const maintenance = {
     scene.background = new THREE.Color(0x07080a);
     SHOT = portrait
       ? [{ x: 0.7, y: 1.4, z: 4.9, tx: -0.15, ty: 1.12, tz: -2.2 }, { x: 0.3, y: 1.35, z: 3.7, tx: -0.1, ty: 1.15, tz: -2.2 }]
-      : [{ x: 2.1, y: 1.62, z: 4.3, tx: -0.35, ty: 1.22, tz: -2.0 }, { x: 1.35, y: 1.5, z: 3.2, tx: -0.25, ty: 1.25, tz: -2.0 }];
+      : [{ x: 1.6, y: 1.6, z: 4.7, tx: 1.55, ty: 1.2, tz: -2.0 }, { x: 1.0, y: 1.5, z: 3.6, tx: 1.35, ty: 1.25, tz: -2.0 }];
     Object.assign(rig, SHOT[0]);
 
     // --- the room: grimy plaster walls, an oak floor, a window on the left wall
