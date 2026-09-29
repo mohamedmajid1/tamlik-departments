@@ -1,5 +1,7 @@
 # Tamlik Departments
 
+> **Handoff, deployment and open items: see [HANDOFF.md](HANDOFF.md).**
+
 A 53-second animated loop (Anime.js 4) advertising three Tamlik departments on the hallway screens. It plays
 forever with no interaction and has its own soundtrack.
 
@@ -18,8 +20,8 @@ artwork, colours, textures, film stills, music, the recording approach) and neve
 
 ## Playing it
 
-- **Live page:** open `index.html` from any static server (GitHub Pages serves it). It animates live in the browser and
-  is light enough for the screens. Sound starts on its own where the browser allows autoplay with sound (kiosk
+- **Live page:** open `index.html` from any static server (GitHub Pages serves it). It renders the 3D live in the browser,
+  which needs a decent GPU: on a PC it's fine, the slow screens should play the video instead. Sound starts on its own where the browser allows autoplay with sound (kiosk
   browsers such as Fully Kiosk: turn on *Autoplay Audio*), otherwise on the first tap.
 - **Video:** `renders/departments_portrait.mp4` and `renders/departments_landscape.mp4` (with sound), attached to the
   GitHub release. For screens that play video files.
